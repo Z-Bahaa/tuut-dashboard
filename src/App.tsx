@@ -26,6 +26,10 @@ import authProvider from "./authProvider";
 import { Header } from "./components/header";
 import { ColorModeContextProvider } from "./contexts/color-mode";
 import { supabaseClient } from "./utility";
+import { StoreList } from "./pages/stores/list";
+import { StoreCreate } from "./pages/stores/create";
+import { StoreEdit } from "./pages/stores/edit";
+import { StoreShow } from "./pages/stores/show";
 
         
 import { ShoppingOutlined } from '@ant-design/icons';
@@ -150,6 +154,10 @@ function App() {
                       index
                       element={<NavigateToResource resource="stores" />}
                     />
+                    <Route path="/stores" element={<StoreList />} />
+                    <Route path="/stores/create" element={<StoreCreate />} />
+                    <Route path="/stores/edit/:id" element={<StoreEdit />} />
+                    <Route path="/stores/show/:id" element={<StoreShow />} />
                     <Route path="*" element={<ErrorComponent />} />
                   </Route>
                   <Route
