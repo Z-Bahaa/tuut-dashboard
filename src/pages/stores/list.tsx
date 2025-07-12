@@ -3,10 +3,12 @@ import { useMany, useList } from "@refinedev/core";
 import { Table, Space, Button, Input, Tag } from "antd";
 import { EditOutlined, EyeOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useContext } from "react";
+import { ColorModeContext } from "../../contexts/color-mode";
 
 export const StoreList = () => {
   const navigate = useNavigate();
+  const { mode } = useContext(ColorModeContext);
   const [searchText, setSearchText] = useState("");
   const [searchedColumn, setSearchedColumn] = useState("");
 
@@ -81,7 +83,10 @@ export const StoreList = () => {
             }}
             icon={<SearchOutlined />}
             size="small"
-            style={{ width: 90 }}
+            style={{ 
+              width: 90,
+              color: mode === "dark" ? "#000000" : "#ffffff"
+            }}
           >
             Search
           </Button>
@@ -220,6 +225,9 @@ export const StoreList = () => {
             icon={<EyeOutlined />}
             size="small"
             onClick={() => navigate(`/stores/show/${record.id}`)}
+            style={{
+              color: mode === "dark" ? "#000000" : "#ffffff"
+            }}
           >
             View
           </Button>
@@ -239,15 +247,18 @@ export const StoreList = () => {
     <>
       <style>{hideScrollbarStyles}</style>
       <List
-        headerButtons={
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => navigate("/stores/create")}
-          >
-            Create Store
-          </Button>
-        }
+              headerButtons={
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => navigate("/stores/create")}
+          style={{
+            color: mode === "dark" ? "#000000" : "#ffffff"
+          }}
+        >
+          Create Store
+        </Button>
+      }
       >
       <Table
         {...tableProps}

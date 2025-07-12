@@ -1,8 +1,11 @@
 import { Create, useForm } from "@refinedev/antd";
 import { Form, Input, Button } from "antd";
 import { SaveOutlined } from "@ant-design/icons";
+import { useContext } from "react";
+import { ColorModeContext } from "../../contexts/color-mode";
 
 export const StoreCreate = () => {
+  const { mode } = useContext(ColorModeContext);
   const { formProps, saveButtonProps } = useForm({
     resource: "stores",
   });
@@ -12,6 +15,9 @@ export const StoreCreate = () => {
       saveButtonProps={{
         ...saveButtonProps,
         icon: <SaveOutlined />,
+        style: {
+          color: mode === "dark" ? "#000000" : "#ffffff"
+        }
       }}
     >
       <Form {...formProps} layout="vertical">

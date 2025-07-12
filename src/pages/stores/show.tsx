@@ -2,12 +2,15 @@ import { Show } from "@refinedev/antd";
 import { Typography, Descriptions, Button, Image } from "antd";
 import { EditOutlined, ArrowLeftOutlined } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
+import { useContext } from "react";
+import { ColorModeContext } from "../../contexts/color-mode";
 
 const { Title, Text } = Typography;
 
 export const StoreShow = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { mode } = useContext(ColorModeContext);
 
   return (
     <Show
@@ -24,6 +27,9 @@ export const StoreShow = () => {
           type="primary"
           icon={<EditOutlined />}
           onClick={() => navigate(`/stores/edit/${id}`)}
+          style={{
+            color: mode === "dark" ? "#000000" : "#ffffff"
+          }}
         >
           Edit
         </Button>,

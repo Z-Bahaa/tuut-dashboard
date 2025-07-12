@@ -2,9 +2,12 @@ import { Edit, useForm } from "@refinedev/antd";
 import { Form, Input } from "antd";
 import { SaveOutlined } from "@ant-design/icons";
 import { useParams } from "react-router-dom";
+import { useContext } from "react";
+import { ColorModeContext } from "../../contexts/color-mode";
 
 export const StoreEdit = () => {
   const { id } = useParams();
+  const { mode } = useContext(ColorModeContext);
   const { formProps, saveButtonProps } = useForm({
     resource: "stores",
     id,
@@ -15,6 +18,9 @@ export const StoreEdit = () => {
       saveButtonProps={{
         ...saveButtonProps,
         icon: <SaveOutlined />,
+        style: {
+          color: mode === "dark" ? "#000000" : "#ffffff"
+        }
       }}
     >
       <Form {...formProps} layout="vertical">
