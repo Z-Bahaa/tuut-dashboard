@@ -78,7 +78,7 @@ export const StoreShow = () => {
             <div 
               style={{
                 width: "100%",
-                height: "200px",
+                height: "180px",
                 backgroundImage: `url(${store.cover_picture_url})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
