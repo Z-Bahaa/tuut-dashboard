@@ -1,10 +1,12 @@
-import { List, useTable, ImageField } from "@refinedev/antd";
+import { List, useTable, ImageField, useNotificationProvider } from "@refinedev/antd";
 import { useMany, useList, useDelete } from "@refinedev/core";
-import { Table, Space, Button, Input, Tag, Popconfirm } from "antd";
+import { Table, Space, Button, Input, Tag, Popconfirm, message } from "antd";
 import { EditOutlined, EyeOutlined, PlusOutlined, SearchOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { useState, useContext } from "react";
 import { ColorModeContext } from "../../contexts/color-mode";
+import { supabaseClient as supabase } from "../../utility/supabaseClient";
+import { extractFileNameFromUrl } from "../../utility/functions";
 
 export const StoreList = () => {
   const navigate = useNavigate();
@@ -13,6 +15,55 @@ export const StoreList = () => {
   const [searchedColumn, setSearchedColumn] = useState("");
   
   const { mutate: deleteStore } = useDelete();
+  const { open } = useNotificationProvider();
+
+  // Custom delete function that removes associated files before deleting the store
+  const handleDeleteStore = async (store: any) => {
+    try {
+      // Remove profile picture if it exists
+      if (store.profile_picture_url) {
+        const profileFileName = extractFileNameFromUrl(store.profile_picture_url);
+        if (profileFileName) {
+          const { error: profileError } = await supabase.storage
+            .from('store-assets')
+            .remove([`profile-pictures/${profileFileName}`]);
+          
+          if (profileError) {
+            console.warn('Failed to delete profile picture:', profileError.message);
+          }
+        }
+      }
+
+      // Remove cover picture if it exists
+      if (store.cover_picture_url) {
+        const coverFileName = extractFileNameFromUrl(store.cover_picture_url);
+        if (coverFileName) {
+          const { error: coverError } = await supabase.storage
+            .from('store-assets')
+            .remove([`covers/${coverFileName}`]);
+          
+          if (coverError) {
+            console.warn('Failed to delete cover picture:', coverError.message);
+          }
+        }
+      }
+
+      // Delete the store record
+      await deleteStore({ resource: "stores", id: store.id });
+
+      open({
+        type: "success",
+        message: "Store deleted successfully",
+        description: "Store and associated files have been removed",
+      });
+    } catch (error) {
+      open({
+        type: "error",
+        message: "Failed to delete store",
+        description: String(error),
+      });
+    }
+  };
 
   // CSS for table scrolling
   const tableScrollStyles = `
@@ -319,11 +370,12 @@ export const StoreList = () => {
           />
           <Popconfirm
             title="Delete Store"
-            description="Are you sure you want to delete this store? This action cannot be undone."
-            onConfirm={() => deleteStore({ resource: "stores", id: record.id })}
+            description="Are you sure you want to delete this store? This will also remove all associated files (profile and cover pictures). This action cannot be undone."
+            onConfirm={() => handleDeleteStore(record)}
             okText="Yes"
             cancelText="No"
             placement="left"
+            styles={{ root: { maxWidth: 400 } }}
           >
             <Button
               icon={<DeleteOutlined />}
