@@ -181,6 +181,9 @@ export const StoreShow = () => {
                         alignItems: "center",
                         display: "flex",
                         textAlign: "center",
+                        backgroundColor: mode === "light" ? "#e8e8e8" : undefined,
+                        borderColor: mode === "light" ? "#bfbfbf" : undefined,
+                        color: mode === "light" ? "#434343" : undefined,
                       }}
                     >
                       {store.is_active ? "Active" : "Inactive"}
