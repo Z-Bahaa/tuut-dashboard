@@ -32,6 +32,13 @@ export const StoreEdit = () => {
 
   const { open } = useNotificationProvider();
 
+  // Update document title when store data is loaded
+  useEffect(() => {
+    if (query?.data?.data?.title) {
+      document.title = `Edit ${query.data.data.title} - Store`;
+    }
+  }, [query?.data?.data?.title]);
+
   // Set initial values when data is loaded
   useEffect(() => {
     if (query?.data?.data) {

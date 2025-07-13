@@ -2,7 +2,7 @@ import { Show } from "@refinedev/antd";
 import { Typography, Button, Image, Tag, Card, Space, Avatar, Divider } from "antd";
 import { EditOutlined, ArrowLeftOutlined, GlobalOutlined } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
-import { useContext } from "react";
+import { useContext, useEffect } from "react";
 import { ColorModeContext } from "../../contexts/color-mode";
 import { useOne, useMany } from "@refinedev/core";
 
@@ -20,6 +20,13 @@ export const StoreShow = () => {
   });
 
   const store = storeData?.data;
+
+  // Update document title when store data is loaded
+  useEffect(() => {
+    if (store?.title) {
+      document.title = `${store.title} - Store Details`;
+    }
+  }, [store?.title]);
 
   // Fetch country data if store has country_id
   const { data: countryData } = useMany({
