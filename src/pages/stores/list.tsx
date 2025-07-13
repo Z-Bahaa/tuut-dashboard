@@ -12,14 +12,28 @@ export const StoreList = () => {
   const [searchText, setSearchText] = useState("");
   const [searchedColumn, setSearchedColumn] = useState("");
 
-  // CSS to hide scrollbar
-  const hideScrollbarStyles = `
+  // CSS for table scrolling
+  const tableScrollStyles = `
     .hide-scrollbar .ant-table-body::-webkit-scrollbar {
       display: none;
     }
     .hide-scrollbar .ant-table-body {
       scrollbar-width: none;
       -ms-overflow-style: none;
+    }
+    
+    .ant-table-wrapper {
+      overflow: auto;
+    }
+    
+    .ant-table {
+      min-width: 800px;
+    }
+    
+    @media (max-width: 768px) {
+      .ant-table {
+        min-width: 600px;
+      }
     }
   `;
   
@@ -249,7 +263,7 @@ export const StoreList = () => {
 
   return (
     <>
-      <style>{hideScrollbarStyles}</style>
+      <style>{tableScrollStyles}</style>
       <List
               headerButtons={
         <Button
@@ -268,7 +282,10 @@ export const StoreList = () => {
         {...tableProps}
         columns={columns}
         rowKey="id"
-        scroll={{ y: 400 }}
+        scroll={{ 
+          y: 400,
+          x: 1200 
+        }}
         pagination={{
           ...tableProps.pagination,
           showSizeChanger: true,
@@ -277,7 +294,11 @@ export const StoreList = () => {
             `${range[0]}-${range[1]} of ${total} items`,
         }}
         className="hide-scrollbar"
-              />
+        style={{ 
+          maxHeight: 'calc(100vh - 200px)',
+          overflow: 'auto'
+        }}
+      />
       </List>
     </>
   );
