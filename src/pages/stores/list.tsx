@@ -34,8 +34,9 @@ export const StoreList = () => {
         },
       ],
     },
-    onSearch: (values) => {
-      setSearchText(values.title || "");
+    onSearch: (values: any) => {
+      setSearchText((values as any).title || "");
+      return [];
     },
   });
 
@@ -113,12 +114,15 @@ export const StoreList = () => {
         : '',
     onFilterDropdownOpenChange: (visible: boolean) => {
       if (visible) {
-        setTimeout(() => document.getElementById('search-input')?.select(), 100);
+        setTimeout(() => {
+          const element = document.getElementById('search-input') as HTMLInputElement;
+          element?.select();
+        }, 100);
       }
     },
   });
 
-  const columns = [
+  const columns: any[] = [
     {
       title: "",
       dataIndex: "profile_picture_url",
@@ -218,7 +222,7 @@ export const StoreList = () => {
       title: "Actions",
       key: "actions",
       width: 200,
-      render: (_, record: any) => (
+      render: (_: any, record: any) => (
         <Space>
           <Button
             type="primary"
