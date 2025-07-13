@@ -119,17 +119,17 @@ export const StoreShow = () => {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "4px" }}>
                   <div>
                     <Title level={2} style={{ margin: "0 0 0px 0" }}>
-                      {store.title}
-                    </Title>
-                    
-                    {store.slug && (
+                  {store.title}
+                </Title>
+                
+                {store.slug && (
                       <Text type="secondary" style={{ fontSize: "16px", display: "block", marginBottom: "8px" }}>
                         @{store.slug}
-                      </Text>
-                    )}
+                  </Text>
+                )}
                   </div>
-                  
-                  {/* Status Tag */}
+
+                {/* Status Tag */}
                   <Tag 
                     color={store.is_active ? "green" : "default"}
                     style={{ 

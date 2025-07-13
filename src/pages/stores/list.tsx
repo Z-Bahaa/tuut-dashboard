@@ -22,17 +22,82 @@ export const StoreList = () => {
       -ms-overflow-style: none;
     }
     
+    .ant-table-wrapper::-webkit-scrollbar {
+      display: none;
+    }
     .ant-table-wrapper {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
       overflow: auto;
     }
     
+    .ant-table::-webkit-scrollbar {
+      display: none;
+    }
     .ant-table {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
       min-width: 800px;
+    }
+    
+    .ant-table-body::-webkit-scrollbar {
+      display: none;
+    }
+    .ant-table-body {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    
+    .ant-table-header::-webkit-scrollbar {
+      display: none;
+    }
+    .ant-table-header {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    
+    .ant-table th:last-child,
+    .ant-table td:last-child {
+      max-width: fit-content !important;
+    }
+    
+    .ant-pagination {
+      display: flex !important;
+      justify-content: center !important;
+      align-items: center !important;
+      margin-top: 16px !important;
+    }
+    
+    @media (max-width: 850px) {
+      .action-text {
+        display: none !important;
+      }
+      
+      .action-button {
+        min-width: 32px !important;
+        padding: 4px 8px !important;
+      }
     }
     
     @media (max-width: 768px) {
       .ant-table {
         min-width: 600px;
+      }
+      
+      .ant-table-scroll {
+        max-width: calc(100vw - 80px) !important;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .ant-table-scroll {
+        max-width: calc(100vw - 60px) !important;
+      }
+    }
+    
+    @media (max-width: 320px) {
+      .ant-table-scroll {
+        max-width: calc(100vw - 40px) !important;
       }
     }
   `;
@@ -235,27 +300,29 @@ export const StoreList = () => {
     {
       title: "Actions",
       key: "actions",
-      width: 200,
+      fixed: 'right',
       render: (_: any, record: any) => (
         <Space>
-          <Button
-            type="primary"
-            icon={<EyeOutlined />}
-            size="small"
-            onClick={() => navigate(`/stores/show/${record.id}`)}
-            style={{
-              color: mode === "dark" ? "#000000" : "#ffffff"
-            }}
-          >
-            View
-          </Button>
-          <Button
-            icon={<EditOutlined />}
-            size="small"
-            onClick={() => navigate(`/stores/edit/${record.id}`)}
-          >
-            Edit
-          </Button>
+                      <Button
+              type="primary"
+              icon={<EyeOutlined />}
+              size="small"
+              onClick={() => navigate(`/stores/show/${record.id}`)}
+              style={{
+                color: mode === "dark" ? "#000000" : "#ffffff"
+              }}
+              className="action-button"
+            >
+              <span className="action-text">View</span>
+            </Button>
+            <Button
+              icon={<EditOutlined />}
+              size="small"
+              onClick={() => navigate(`/stores/edit/${record.id}`)}
+              className="action-button"
+            >
+              <span className="action-text">Edit</span>
+            </Button>
         </Space>
       ),
     },
@@ -283,8 +350,8 @@ export const StoreList = () => {
         columns={columns}
         rowKey="id"
         scroll={{ 
-          y: 400,
-          x: 1200 
+          y: 'calc(100vh - 320px)', // Viewport width minus scrollbar and padding
+          x: 'calc(100vw - 320px)' // Viewport width minus scrollbar and padding
         }}
         pagination={{
           ...tableProps.pagination,
