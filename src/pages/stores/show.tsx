@@ -2,9 +2,10 @@ import { Show } from "@refinedev/antd";
 import { Typography, Button, Image, Tag, Card, Space, Avatar, Divider } from "antd";
 import { EditOutlined, ArrowLeftOutlined, GlobalOutlined } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
-import { useContext, useEffect } from "react";
+import { useContext, useEffect, useState } from "react";
 import { ColorModeContext } from "../../contexts/color-mode";
 import { useOne, useMany } from "@refinedev/core";
+import { supabaseClient as supabase } from "../../utility/supabaseClient";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -35,6 +36,44 @@ export const StoreShow = () => {
   });
 
   const country = countryData?.data?.[0];
+
+  // Fetch store categories
+  const [storeCategories, setStoreCategories] = useState<any[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStoreCategories = async () => {
+      if (store?.id) {
+        try {
+          const { data, error } = await supabase
+            .from('store_categories')
+            .select(`
+              category_id,
+              categories (
+                id,
+                title,
+                image_url
+              )
+            `)
+            .eq('store_id', store.id);
+
+          if (error) {
+            console.error('Error fetching store categories:', error);
+            setCategoriesLoading(false);
+            return;
+          }
+
+          setStoreCategories(data || []);
+          setCategoriesLoading(false);
+        } catch (error) {
+          console.error('Error fetching store categories:', error);
+          setCategoriesLoading(false);
+        }
+      }
+    };
+
+    fetchStoreCategories();
+  }, [store?.id]);
 
   if (storeLoading) {
     return <div>Loading...</div>;
@@ -129,23 +168,42 @@ export const StoreShow = () => {
                 )}
                   </div>
 
-                {/* Status Tag */}
-                  <Tag 
-                    color={store.is_active ? "green" : "default"}
-                    style={{ 
-                      marginTop: "6px",
-                      fontSize: "14px",
-                      padding: "4px 8px",
-                      height: "auto",
-                      minWidth: "80px",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      display: "flex",
-                      textAlign: "center",
-                    }}
-                  >
-                    {store.is_active ? "Active" : "Inactive"}
-                  </Tag>
+                                  {/* Status Tags */}
+                  <div style={{ display: "flex", gap: "8px", marginTop: "6px", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                    <Tag 
+                      color={store.is_active ? "green" : "default"}
+                      style={{ 
+                        fontSize: "14px",
+                        padding: "4px 8px",
+                        height: "auto",
+                        minWidth: "80px",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        display: "flex",
+                        textAlign: "center",
+                      }}
+                    >
+                      {store.is_active ? "Active" : "Inactive"}
+                    </Tag>
+                    
+                    {store.total_offers !== undefined && (
+                      <Tag 
+                        color="blue"
+                        style={{ 
+                          fontSize: "14px",
+                          padding: "4px 8px",
+                          height: "auto",
+                          minWidth: "80px",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          display: "flex",
+                          textAlign: "center",
+                        }}
+                      >
+                        {store.total_offers} Offers
+                      </Tag>
+                    )}
+                  </div>
                 </div>
 
                 {/* Country */}
@@ -162,14 +220,48 @@ export const StoreShow = () => {
                   </div>
                 )}
 
-                {/* Total Offers */}
-                {store.total_offers !== undefined && (
+                {/* Categories */}
+                {storeCategories.length > 0 && (
                   <div style={{ marginBottom: "12px" }}>
-                    <Tag color="blue" style={{ fontSize: "14px" }}>
-                      {store.total_offers} Offers
-                    </Tag>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                      {storeCategories.map((item: any) => (
+                        <Tag
+                          key={item.category_id}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "6px",
+                            padding: "4px 8px",
+                            fontSize: "14px",
+                            height: "auto",
+                            margin: "2px 0",
+                            color: mode === "light" ? "#722ed1" : "#faad14",
+                            borderColor: mode === "light" ? "#722ed1" : "#faad14"
+                          }}
+                        >
+                          {item.categories?.image_url && (
+                            <Image
+                              src={item.categories.image_url}
+                              width={16}
+                              height={16}
+                              style={{ 
+                                marginBottom: "7px",
+                                filter: mode === "light" 
+                                  ? "brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(246deg) brightness(104%) contrast(97%)"
+                                  : "brightness(0) saturate(100%) invert(84%) sepia(31%) saturate(6382%) hue-rotate(359deg) brightness(103%) contrast(107%)"
+                              }}
+                              preview={false}
+                            />
+                          )}
+                          <span >{item.categories?.title}</span>
+                        </Tag>
+                      ))}
+                    </div>
                   </div>
                 )}
+
+
               </div>
             </div>
           </div>
