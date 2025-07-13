@@ -17,6 +17,11 @@ export const StoreCreate = () => {
     resource: "countries",
   });
 
+  // Fetch all categories using useList
+  const { data: categoriesData } = useList({
+    resource: "categories",
+  });
+
   // Profile picture upload states
   const [profileURL, setProfileURL] = useState('');
   const [profileFile, setProfileFile] = useState<File | null>(null);
@@ -142,18 +147,70 @@ export const StoreCreate = () => {
       setCoverUploadLoading(false);
     }
 
-    open({
-      type: "success",
-      message: "Images uploaded successfully",
-      description: "Upload Success",
-    });
+    // Show upload success notifications
+    if (profileFile) {
+      open({
+        type: "success",
+        message: "Profile picture uploaded successfully",
+        description: "Upload Success",
+      });
+    }
+
+    if (coverFile) {
+      open({
+        type: "success",
+        message: "Cover picture uploaded successfully",
+        description: "Upload Success",
+      });
+    }
+
+    // Extract category IDs from form values
+    const categoryIds = values.category_ids || [];
+    delete values.category_ids; // Remove category_ids from store data
 
     if (formProps.onFinish) {
-      await formProps.onFinish({ 
+      const result = await formProps.onFinish({ 
         ...values, 
         profile_picture_url: finalProfileURL,
         cover_picture_url: finalCoverURL 
       });
+
+      // Create store_categories relations if categories were selected
+      if (categoryIds.length > 0 && (result as any)?.data?.id) {
+        const storeId = (result as any).data.id;
+        
+        try {
+          // Create store_categories relations
+          const { error: relationError } = await supabase
+            .from('store_categories')
+            .insert(
+              categoryIds.map((categoryId: number) => ({
+                store_id: storeId,
+                category_id: categoryId
+              }))
+            );
+
+          if (relationError) {
+            open({
+              type: "error",
+              message: "Failed to create category relations",
+              description: relationError.message,
+            });
+          } else {
+            open({
+              type: "success",
+              message: "Category relations created successfully",
+              description: "Relations Success",
+            });
+          }
+        } catch (error) {
+          open({
+            type: "error",
+            message: "Failed to create category relations",
+            description: String(error),
+          });
+        }
+      }
     } else {
       message.error("Form submit function not available");
     }
@@ -265,6 +322,37 @@ export const StoreCreate = () => {
                     style={{ width: '20px', height: '15px', objectFit: 'cover' }}
                   />
                   <span>{country.value}</span>
+                </div>
+              </Select.Option>
+            ))}
+          </Select>
+        </Form.Item>
+
+        <Form.Item
+          label="Categories"
+          name="category_ids"
+          rules={[{ required: false, message: "Please select at least one category" }]}
+        >
+          <Select
+            mode="multiple"
+            placeholder="Select categories"
+            loading={!categoriesData}
+            showSearch
+            optionFilterProp="children"
+            filterOption={(input, option) => {
+              const label = option?.label || option?.children;
+              return String(label).toLowerCase().includes(input.toLowerCase());
+            }}
+          >
+            {categoriesData?.data?.map((category: any) => (
+              <Select.Option key={category.id} value={category.id}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <img 
+                    src={category.image_url} 
+                    alt={category.title}
+                    style={{ width: '20px', height: '20px', objectFit: 'cover', borderRadius: '4px' }}
+                  />
+                  <span>{category.title}</span>
                 </div>
               </Select.Option>
             ))}
