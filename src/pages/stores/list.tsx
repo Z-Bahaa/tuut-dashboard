@@ -1,7 +1,7 @@
 import { List, useTable, ImageField } from "@refinedev/antd";
-import { useMany, useList } from "@refinedev/core";
-import { Table, Space, Button, Input, Tag } from "antd";
-import { EditOutlined, EyeOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
+import { useMany, useList, useDelete } from "@refinedev/core";
+import { Table, Space, Button, Input, Tag, Popconfirm } from "antd";
+import { EditOutlined, EyeOutlined, PlusOutlined, SearchOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { useState, useContext } from "react";
 import { ColorModeContext } from "../../contexts/color-mode";
@@ -11,6 +11,8 @@ export const StoreList = () => {
   const { mode } = useContext(ColorModeContext);
   const [searchText, setSearchText] = useState("");
   const [searchedColumn, setSearchedColumn] = useState("");
+  
+  const { mutate: deleteStore } = useDelete();
 
   // CSS for table scrolling
   const tableScrollStyles = `
@@ -69,10 +71,6 @@ export const StoreList = () => {
     }
     
     @media (max-width: 850px) {
-      .action-text {
-        display: none !important;
-      }
-      
       .action-button {
         min-width: 32px !important;
         padding: 4px 8px !important;
@@ -301,28 +299,39 @@ export const StoreList = () => {
       title: "Actions",
       key: "actions",
       fixed: 'right',
-      render: (_: any, record: any) => (
+            render: (_: any, record: any) => (
         <Space>
-                      <Button
-              type="primary"
-              icon={<EyeOutlined />}
-              size="small"
-              onClick={() => navigate(`/stores/show/${record.id}`)}
-              style={{
-                color: mode === "dark" ? "#000000" : "#ffffff"
-              }}
-              className="action-button"
-            >
-              <span className="action-text">View</span>
-            </Button>
+          <Button
+            type="primary"
+            icon={<EyeOutlined />}
+            size="small"
+            onClick={() => navigate(`/stores/show/${record.id}`)}
+            style={{
+              color: mode === "dark" ? "#000000" : "#ffffff"
+            }}
+            className="action-button"
+          />
+          <Button
+            icon={<EditOutlined />}
+            size="small"
+            onClick={() => navigate(`/stores/edit/${record.id}`)}
+            className="action-button"
+          />
+          <Popconfirm
+            title="Delete Store"
+            description="Are you sure you want to delete this store? This action cannot be undone."
+            onConfirm={() => deleteStore({ resource: "stores", id: record.id })}
+            okText="Yes"
+            cancelText="No"
+            placement="left"
+          >
             <Button
-              icon={<EditOutlined />}
+              icon={<DeleteOutlined />}
               size="small"
-              onClick={() => navigate(`/stores/edit/${record.id}`)}
+              danger
               className="action-button"
-            >
-              <span className="action-text">Edit</span>
-            </Button>
+            />
+          </Popconfirm>
         </Space>
       ),
     },
