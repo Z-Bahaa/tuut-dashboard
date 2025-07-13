@@ -88,6 +88,7 @@ export const StoreEdit = () => {
   useEffect(() => {
     if (query?.data?.data) {
       const storeData = query.data.data;
+      console.log('Store data loaded:', storeData);
       
       // Set original URLs for deletion purposes
       setOriginalProfileURL(storeData.profile_picture_url || '');
@@ -103,9 +104,14 @@ export const StoreEdit = () => {
       }
       if (storeData.cover_picture_url) {
         setCoverPreview(storeData.cover_picture_url);
+        console.log('Cover picture URL found and set:', storeData.cover_picture_url);
+      } else {
+        console.log('No cover picture URL in store data');
       }
     }
   }, [query?.data]);
+
+
 
   const handleProfileFileChange = (info: any) => {
     if (info.fileList.length > 0) {
