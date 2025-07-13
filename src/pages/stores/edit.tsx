@@ -16,6 +16,16 @@ export const StoreEdit = () => {
     resource: "countries",
   });
 
+  // Fetch all categories using useList
+  const { data: categoriesData } = useList({
+    resource: "categories",
+  });
+
+  // Category selection states
+  const [initialSelectedCategoryIds, setInitialSelectedCategoryIds] = useState<number[]>([]);
+  const [currentSelectedCategoryIds, setCurrentSelectedCategoryIds] = useState<number[]>([]);
+  const [categoriesLoaded, setCategoriesLoaded] = useState(false);
+
   // Profile picture upload states
   const [profileURL, setProfileURL] = useState('');
   const [profileFile, setProfileFile] = useState<File | null>(null);
@@ -38,6 +48,41 @@ export const StoreEdit = () => {
       document.title = `Edit ${query.data.data.title} - Store`;
     }
   }, [query?.data?.data?.title]);
+
+  // Fetch existing category relationships when store data is loaded
+  useEffect(() => {
+    const fetchStoreCategories = async () => {
+      if (query?.data?.data?.id) {
+        const storeId = query.data.data.id;
+        
+        try {
+          const { data: storeCategories, error } = await supabase
+            .from('store_categories')
+            .select('category_id')
+            .eq('store_id', storeId);
+
+          if (error) {
+            console.error('Error fetching store categories:', error);
+            return;
+          }
+
+          const categoryIds = storeCategories?.map((sc: any) => sc.category_id) || [];
+          setInitialSelectedCategoryIds(categoryIds);
+          setCurrentSelectedCategoryIds(categoryIds);
+          setCategoriesLoaded(true);
+        } catch (error) {
+          console.error('Error fetching store categories:', error);
+          setCategoriesLoaded(true);
+        }
+      }
+    };
+
+    fetchStoreCategories();
+  }, [query?.data?.data?.id]);
+
+
+
+
 
   // Set initial values when data is loaded
   useEffect(() => {
@@ -194,6 +239,72 @@ export const StoreEdit = () => {
       setCoverUploadLoading(false);
     }
 
+    // Handle category relationships
+    const storeId = query?.data?.data?.id;
+    if (storeId) {
+      // Compare initial and current category selections
+      const removedCategoryIds = initialSelectedCategoryIds.filter(
+        (id: number) => !currentSelectedCategoryIds.includes(id)
+      );
+      const addedCategoryIds = currentSelectedCategoryIds.filter(
+        (id: number) => !initialSelectedCategoryIds.includes(id)
+      );
+
+      try {
+        // Delete removed category relationships
+        if (removedCategoryIds.length > 0) {
+          const { error: deleteError } = await supabase
+            .from('store_categories')
+            .delete()
+            .eq('store_id', storeId)
+            .in('category_id', removedCategoryIds);
+
+          if (deleteError) {
+            open({
+              type: "error",
+              message: "Failed to remove category relations",
+              description: deleteError.message,
+            });
+          }
+        }
+
+        // Add new category relationships
+        if (addedCategoryIds.length > 0) {
+          const { error: insertError } = await supabase
+            .from('store_categories')
+            .insert(
+              addedCategoryIds.map((categoryId: number) => ({
+                store_id: storeId,
+                category_id: categoryId
+              }))
+            );
+
+          if (insertError) {
+            open({
+              type: "error",
+              message: "Failed to create category relations",
+              description: insertError.message,
+            });
+          }
+        }
+
+        // Show success notification if changes were made
+        if (removedCategoryIds.length > 0 || addedCategoryIds.length > 0) {
+          open({
+            type: "success",
+            message: "Category relations updated successfully",
+            description: "Relations Updated",
+          });
+        }
+      } catch (error) {
+        open({
+          type: "error",
+          message: "Failed to update category relations",
+          description: String(error),
+        });
+      }
+    }
+
     if (formProps.onFinish) {
       await formProps.onFinish({ 
         ...values, 
@@ -310,6 +421,39 @@ export const StoreEdit = () => {
                     style={{ width: '20px', height: '15px', objectFit: 'cover' }}
                   />
                   <span>{country.value}</span>
+                </div>
+              </Select.Option>
+            ))}
+          </Select>
+        </Form.Item>
+
+        <Form.Item
+          label="Categories"
+          rules={[{ required: false, message: "Please select at least one category" }]}
+        >
+          <Select
+            mode="multiple"
+            placeholder="Select categories"
+            loading={!categoriesData || !categoriesLoaded}
+            showSearch
+            optionFilterProp="children"
+            filterOption={(input, option) => {
+              const label = option?.label || option?.children;
+              return String(label).toLowerCase().includes(input.toLowerCase());
+            }}
+            value={currentSelectedCategoryIds}
+            onChange={(values: number[]) => setCurrentSelectedCategoryIds(values)}
+            disabled={!categoriesLoaded}
+          >
+            {categoriesData?.data?.map((category: any) => (
+              <Select.Option key={category.id} value={category.id}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <img 
+                    src={category.image_url} 
+                    alt={category.title}
+                    style={{ width: '20px', height: '20px', objectFit: 'cover', borderRadius: '4px' }}
+                  />
+                  <span>{category.title}</span>
                 </div>
               </Select.Option>
             ))}
