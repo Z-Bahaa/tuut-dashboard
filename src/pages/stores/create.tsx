@@ -220,28 +220,26 @@ export const StoreCreate = () => {
           valuePropName="checked"
           initialValue={true}
         >
-          <>
-            <Switch 
-              checkedChildren="Active" 
-              unCheckedChildren="Inactive"
-              style={{ 
-                transform: 'scale(1.25)',
-                marginLeft: '5px'
-              }}
-            />
-            <style>
-              {`
-                .ant-switch-checked .ant-switch-handle::before {
-                  background-color: ${mode === "dark" ? "#141414" : "#ffffff"} !important;
-                }
-                .ant-switch-checked .ant-switch-inner-checked {
-                  color: ${mode === "dark" ? "#141414" : "#ffffff"} !important;
-                }
-                  
-              `}
-            </style>
-          </>
+          <Switch 
+            checkedChildren="Active" 
+            unCheckedChildren="Inactive"
+            style={{ 
+              transform: 'scale(1.25)',
+              marginLeft: '5px'
+            }}
+          />
         </Form.Item>
+        <style>
+          {`
+            .ant-switch-checked .ant-switch-handle::before {
+              background-color: ${mode === "dark" ? "#141414" : "#ffffff"} !important;
+            }
+            .ant-switch-checked .ant-switch-inner-checked {
+              color: ${mode === "dark" ? "#141414" : "#ffffff"} !important;
+            }
+              
+          `}
+        </style>
 
         <Form.Item
           label="Country"
