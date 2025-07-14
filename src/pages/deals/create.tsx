@@ -349,8 +349,22 @@ export const DealCreate = () => {
           name="expiry_date"
           rules={[{ required: true, message: "Please select expiry date" }]}
         >
-          <Input type="datetime-local" />
+          <Input 
+            type="datetime-local" 
+            style={{
+              colorScheme: mode === "dark" ? "dark" : "light"
+            }}
+          />
         </Form.Item>
+        <style>
+          {`
+            ::-webkit-calendar-picker-indicator {
+              filter: ${mode === "light" ? "brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(246deg) brightness(104%) contrast(97%)" : "brightness(0) saturate(100%) invert(83%) sepia(31%) saturate(638%) hue-rotate(359deg) brightness(103%) contrast(107%)"};
+              cursor: pointer;
+            }
+            
+          `}
+        </style>
 
         <Form.Item
           label="Activity"
