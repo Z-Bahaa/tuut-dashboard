@@ -289,18 +289,18 @@ export const StoreList = () => {
       ),
     },
     {
-      title: "Is Active",
+      title: "Status",
       dataIndex: "is_active",
       key: "is_active",
       // width: 100,
       filters: [
-        { text: 'True', value: true },
-        { text: 'False', value: false },
+        { text: 'Active', value: true },
+        { text: 'Inactive', value: false },
       ],
       onFilter: (value: boolean, record: any) => record.is_active === value,
       render: (value: boolean) => (
         <Tag color={value ? 'green' : 'red'}>
-          {value ? 'True' : 'False'}
+          {value ? 'Active' : 'Inactive'}
         </Tag>
       ),
     },
