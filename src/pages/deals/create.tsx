@@ -4,6 +4,7 @@ import { SaveOutlined } from "@ant-design/icons";
 import { useContext, useState } from "react";
 import { ColorModeContext } from "../../contexts/color-mode";
 import { useList } from "@refinedev/core";
+import { supabaseClient as supabase } from "../../utility/supabaseClient";
 
 export const DealCreate = () => {
   const { mode } = useContext(ColorModeContext);
@@ -31,10 +32,59 @@ export const DealCreate = () => {
   const { open } = useNotificationProvider();
 
   const handleSave = async (values: any) => {
-    if (formProps.onFinish) {
-      await formProps.onFinish(values);
-    } else {
-      message.error("Form submit function not available");
+    try {
+      if (formProps.onFinish) {
+        const result = await formProps.onFinish(values);
+        
+        // If deal creation was successful, increment the store's total_offers
+        if (values.store_id) {
+          try {
+            // Get current store data
+            const currentStore = storesData?.data?.find((store: any) => store.id === values.store_id);
+            if (currentStore) {
+              const currentTotalOffers = currentStore.total_offers || 0;
+              const newTotalOffers = currentTotalOffers + 1;
+              
+              // Update the store's total_offers
+              const { error: updateError } = await supabase
+                .from('stores')
+                .update({ total_offers: newTotalOffers })
+                .eq('id', values.store_id);
+              
+              if (updateError) {
+                console.error('Failed to update store total_offers:', updateError);
+                open({
+                  type: "error",
+                  message: "Deal created but failed to update store offer count",
+                  description: "The deal was created successfully, but the store's offer count may not be accurate.",
+                });
+              } else {
+                open({
+                  type: "success",
+                  message: "Store updated successfully",
+                  description: "store offer count has been updated successfully.",
+                });
+              }
+            }
+          } catch (error) {
+            console.error('Error updating store total_offers:', error);
+            open({
+              type: "error",
+              message: "Deal created but failed to update store offer count",
+              description: "The deal was created successfully, but the store's offer count may not be accurate.",
+            });
+          }
+        }
+      } else {
+        message.error("Form submit function not available");
+      }
+    } catch (error) {
+      console.error('Error creating deal:', error);
+      open({
+        type: "error",
+        message: "Failed to create deal",
+        description: String(error),
+      });
     }
   };
 

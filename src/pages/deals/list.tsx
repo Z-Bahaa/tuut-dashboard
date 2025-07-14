@@ -557,45 +557,38 @@ export const DealList = () => {
       title: "Actions",
       key: "actions",
       width: 150,
-      render: (record: any) => (
-        <Space size="small">
+      render: (_: any, record: any) => (
+        <Space>
           <Button
-            type="text"
-            size="small"
+            type="primary"
             icon={<EyeOutlined />}
+            size="small"
             onClick={() => navigate(`/deals/show/${record.id}`)}
-            className="action-button"
-            style={{ 
-              color: mode === "dark" ? "#ffffff" : "#000000",
-              border: `1px solid ${mode === "dark" ? "#434343" : "#d9d9d9"}`
+            style={{
+              color: mode === "dark" ? "#000000" : "#ffffff"
             }}
+            className="action-button"
           />
           <Button
-            type="text"
-            size="small"
             icon={<EditOutlined />}
+            size="small"
             onClick={() => navigate(`/deals/edit/${record.id}`)}
             className="action-button"
-            style={{ 
-              color: mode === "dark" ? "#ffffff" : "#000000",
-              border: `1px solid ${mode === "dark" ? "#434343" : "#d9d9d9"}`
-            }}
           />
           <Popconfirm
-            title="Are you sure you want to delete this deal?"
+            title="Delete Deal"
+            description="Are you sure you want to delete this deal? This action cannot be undone."
             onConfirm={() => handleDeleteDeal(record)}
             okText="Yes"
             cancelText="No"
+            placement="left"
+            styles={{ root: { maxWidth: 400 } }}
           >
             <Button
-              type="text"
-              size="small"
               icon={<DeleteOutlined />}
+              size="small"
+              danger
               className="action-button"
-              style={{ 
-                color: "#ff4d4f",
-                border: `1px solid ${mode === "dark" ? "#434343" : "#d9d9d9"}`
-              }}
             />
           </Popconfirm>
         </Space>
