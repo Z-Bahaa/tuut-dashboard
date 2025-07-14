@@ -29,12 +29,58 @@ export const DealCreate = () => {
     resource: "countries",
   });
 
+  // Fetch all categories using useList
+  const { data: categoriesData, isLoading: categoriesLoading } = useList({
+    resource: "categories",
+  });
+
   const { open } = useNotificationProvider();
 
   const handleSave = async (values: any) => {
     try {
+      // Extract category IDs from form values
+      const categoryIds = values.category_ids || [];
+      delete values.category_ids; // Remove category_ids from deal data
+
       if (formProps.onFinish) {
         const result = await formProps.onFinish(values);
+        
+        // Create deal_categories relations if categories were selected
+        if (categoryIds.length > 0 && (result as any)?.data?.id) {
+          const dealId = (result as any).data.id;
+          
+          try {
+            // Create deal_categories relations
+            const { error: relationError } = await supabase
+              .from('deal_categories')
+              .insert(
+                categoryIds.map((categoryId: number) => ({
+                  deal_id: dealId,
+                  category_id: categoryId
+                }))
+              );
+
+            if (relationError) {
+              open({
+                type: "error",
+                message: "Failed to create category relations",
+                description: relationError.message,
+              });
+            } else {
+              open({
+                type: "success",
+                message: "Category relations created successfully",
+                description: "Relations Success",
+              });
+            }
+          } catch (error) {
+            open({
+              type: "error",
+              message: "Failed to create category relations",
+              description: String(error),
+            });
+          }
+        }
         
         // If deal creation was successful, increment the store's total_offers
         if (values.store_id) {
@@ -97,7 +143,7 @@ export const DealCreate = () => {
           color: mode === "dark" ? "#000000" : "#ffffff"
         }
       }}
-      isLoading={storesLoading || countriesLoading}
+      isLoading={storesLoading || countriesLoading || categoriesLoading}
     >
       <Form {...formProps} layout="vertical" onFinish={handleSave}>
         <Form.Item
@@ -158,6 +204,37 @@ export const DealCreate = () => {
             placeholder="Enter deal description (optional)" 
             rows={4}
           />
+        </Form.Item>
+
+        <Form.Item
+          label="Categories"
+          name="category_ids"
+          rules={[{ required: false, message: "Please select at least one category" }]}
+        >
+          <Select
+            mode="multiple"
+            placeholder="Select categories"
+            loading={!categoriesData}
+            showSearch
+            optionFilterProp="children"
+            filterOption={(input, option) => {
+              const label = option?.label || option?.children;
+              return String(label).toLowerCase().includes(input.toLowerCase());
+            }}
+          >
+            {categoriesData?.data?.map((category: any) => (
+              <Select.Option key={category.id} value={category.id}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <img 
+                    src={category.image_url} 
+                    alt={category.title}
+                    style={{ width: '20px', height: '20px', objectFit: 'cover', borderRadius: '4px' }}
+                  />
+                  <span>{category.title}</span>
+                </div>
+              </Select.Option>
+            ))}
+          </Select>
         </Form.Item>
 
         <Form.Item
