@@ -23,11 +23,51 @@ export const DealList = () => {
       // Delete the deal record
       await deleteDeal({ resource: "deals", id: deal.id });
 
-      open({
-        type: "success",
-        message: "Deal deleted successfully",
-        description: "Deal has been removed",
-      });
+      // If deal deletion was successful, decrement the store's total_offers
+      if (deal.store_id) {
+        try {
+          // Get current store data
+          const currentStore = allStoresData?.data?.find((store: any) => store.id === deal.store_id);
+          if (currentStore) {
+            const currentTotalOffers = currentStore.total_offers || 0;
+            const newTotalOffers = Math.max(0, currentTotalOffers - 1); // Ensure it doesn't go below 0
+            
+            // Update the store's total_offers
+            const { error: updateError } = await supabase
+              .from('stores')
+              .update({ total_offers: newTotalOffers })
+              .eq('id', deal.store_id);
+            
+            if (updateError) {
+              console.error('Failed to update store total_offers:', updateError);
+              open({
+                type: "error",
+                message: "Deal deleted but failed to update store offer count",
+                description: "The deal was deleted successfully, but the store's offer count may not be accurate.",
+              });
+            } else {
+              open({
+                type: "success",
+                message: "Deal deleted successfully",
+                description: "Deal has been removed and store offer count updated.",
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Error updating store total_offers:', error);
+          open({
+            type: "error",
+            message: "Deal deleted but failed to update store offer count",
+            description: "The deal was deleted successfully, but the store's offer count may not be accurate.",
+          });
+        }
+      } else {
+        open({
+          type: "success",
+          message: "Deal deleted successfully",
+          description: "Deal has been removed",
+        });
+      }
     } catch (error) {
       open({
         type: "error",
