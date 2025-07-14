@@ -541,17 +541,9 @@ export const DealList = () => {
         ),
         value: country.id,
       })) || [],
-      onFilter: (value: any, record: any) => {
-        const store = storesMap[record.store_id];
-        return store?.country_id === (value as number);
-      },
+      onFilter: (value: any, record: any) => record.country_id === (value as number),
       render: (value: number, record: any) => {
-        const store = storesMap[record.store_id];
-        if (!store) {
-          return <span style={{ color: "#ff4d4f", fontSize: "12px" }}>Store Deleted</span>;
-        }
-        
-        const country = countriesMap[store.country_id];
+        const country = countriesMap[value];
         if (!country) {
           return <span style={{ color: "#999" }}>Unknown Country</span>;
         }
