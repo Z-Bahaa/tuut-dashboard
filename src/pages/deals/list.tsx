@@ -13,7 +13,6 @@ export const DealList = () => {
   const [titleSearchText, setTitleSearchText] = useState("");
   const [codeSearchText, setCodeSearchText] = useState("");
   const [searchedColumn, setSearchedColumn] = useState("");
-  const [showOrphanedDeals, setShowOrphanedDeals] = useState(true);
   
   const { mutate: deleteDeal } = useDelete();
   const { open } = useNotificationProvider();
@@ -606,20 +605,7 @@ export const DealList = () => {
         >
           Create Deal
         </Button>,
-        <Button
-          key="toggleOrphaned"
-          type={showOrphanedDeals ? "default" : "primary"}
-          onClick={() => setShowOrphanedDeals(!showOrphanedDeals)}
-          style={{
-            color: showOrphanedDeals ? (mode === "dark" ? "#ffffff" : "#000000") : (mode === "dark" ? "#000000" : "#ffffff")
-          }}
-        >
-          {showOrphanedDeals ? "Hide Orphaned" : "Show Orphaned"}
-          {(() => {
-            const orphanedCount = tableProps.dataSource?.filter((deal: any) => !storesMap[deal.store_id]).length || 0;
-            return orphanedCount > 0 ? ` (${orphanedCount})` : '';
-          })()}
-        </Button>,
+
       ]}
     >
       <style>{tableScrollStyles}</style>
@@ -629,11 +615,7 @@ export const DealList = () => {
         rowKey="id"
         scroll={{ x: 1000 }}
         className="hide-scrollbar"
-        dataSource={
-          showOrphanedDeals 
-            ? tableProps.dataSource 
-            : tableProps.dataSource?.filter((deal: any) => storesMap[deal.store_id])
-        }
+        dataSource={tableProps.dataSource}
         pagination={{
           ...tableProps.pagination,
           showSizeChanger: true,
