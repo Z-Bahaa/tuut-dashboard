@@ -379,13 +379,12 @@ export const DealList = () => {
           return null;
         }
         
-        // Get the store and country for currency code lookup
-        const store = storesMap[record.store_id];
+        // Get the country for currency code lookup
         let currencyDisplay = record.discount_unit;
         
         // For amountOff type, try to get the English currency code from the country
-        if (record.type === "amountOff" && store) {
-          const country = countriesMap[store.country_id];
+        if (record.type === "amountOff") {
+          const country = countriesMap[record.country_id];
           if (country?.currency_code?.en) {
             currencyDisplay = country.currency_code.en;
           }
