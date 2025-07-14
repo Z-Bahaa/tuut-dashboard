@@ -13,6 +13,7 @@ export const DealList = () => {
   const [titleSearchText, setTitleSearchText] = useState("");
   const [codeSearchText, setCodeSearchText] = useState("");
   const [searchedColumn, setSearchedColumn] = useState("");
+  const [showOrphanedDeals, setShowOrphanedDeals] = useState(true);
   
   const { mutate: deleteDeal } = useDelete();
   const { open } = useNotificationProvider();
@@ -149,33 +150,32 @@ export const DealList = () => {
     },
   });
 
-  // Fetch all stores for filter options
-  const { data: storesData } = useList({
+  // Fetch all stores for filter options and display
+  const { data: allStoresData } = useList({
     resource: "stores",
+    pagination: {
+      mode: "off", // Disable pagination to get all stores
+    },
   });
 
   // Create a map of store data for quick lookup
-  const storesMap = storesData?.data?.reduce((acc: any, store: any) => {
+  const storesMap = allStoresData?.data?.reduce((acc: any, store: any) => {
     acc[store.id] = store;
     return acc;
   }, {}) || {};
 
-  // Get all country IDs from the stores data
-  const countryIds = storesData?.data?.map((store: any) => store.country_id).filter(Boolean) || [];
-  
-  // Fetch all countries for filter options
+
+
+  // Fetch all countries for filter options and display
   const { data: allCountriesData } = useList({
     resource: "countries",
-  });
-
-  // Fetch countries data for stores
-  const { data: countriesData } = useMany({
-    resource: "countries",
-    ids: countryIds,
+    pagination: {
+      mode: "off", // Disable pagination to get all countries
+    },
   });
 
   // Create a map of country data for quick lookup
-  const countriesMap = countriesData?.data?.reduce((acc: any, country: any) => {
+  const countriesMap = allCountriesData?.data?.reduce((acc: any, country: any) => {
     acc[country.id] = country;
     return acc;
   }, {}) || {};
@@ -416,7 +416,7 @@ export const DealList = () => {
       dataIndex: "store_id",
       key: "store_id",
       width: 150,
-      filters: storesData?.data?.map((store: any) => ({
+      filters: allStoresData?.data?.map((store: any) => ({
         text: (
           <Space>
             {store.profile_picture_url && (
@@ -424,8 +424,8 @@ export const DealList = () => {
                 src={store.profile_picture_url} 
                 alt={store.title}
                 style={{ 
-                  width: "16px", 
-                  height: "16px", 
+                  width: 16,
+                  height: 16,
                   borderRadius: "50%",
                   objectFit: "cover"
                 }} 
@@ -436,7 +436,7 @@ export const DealList = () => {
         ),
         value: store.id,
       })) || [],
-      filterSearch: true,
+      filterMultiple: true,
       onFilter: (value: any, record: any) => record.store_id === (value as number),
       render: (storeId: number) => {
         const store = storesMap[storeId];
@@ -464,7 +464,9 @@ export const DealList = () => {
             </span>
           </div>
         ) : (
-          <span style={{ color: "#999" }}>Unknown Store</span>
+          <span style={{ color: "#ff4d4f", fontSize: "12px" }}>
+            Store ID: {storeId} (Deleted)
+          </span>
         );
       },
     },
@@ -495,7 +497,7 @@ export const DealList = () => {
       render: (value: number, record: any) => {
         const store = storesMap[record.store_id];
         if (!store) {
-          return <span style={{ color: "#999" }}>Unknown</span>;
+          return <span style={{ color: "#ff4d4f", fontSize: "12px" }}>Store Deleted</span>;
         }
         
         const country = countriesMap[store.country_id];
@@ -604,6 +606,20 @@ export const DealList = () => {
         >
           Create Deal
         </Button>,
+        <Button
+          key="toggleOrphaned"
+          type={showOrphanedDeals ? "default" : "primary"}
+          onClick={() => setShowOrphanedDeals(!showOrphanedDeals)}
+          style={{
+            color: showOrphanedDeals ? (mode === "dark" ? "#ffffff" : "#000000") : (mode === "dark" ? "#000000" : "#ffffff")
+          }}
+        >
+          {showOrphanedDeals ? "Hide Orphaned" : "Show Orphaned"}
+          {(() => {
+            const orphanedCount = tableProps.dataSource?.filter((deal: any) => !storesMap[deal.store_id]).length || 0;
+            return orphanedCount > 0 ? ` (${orphanedCount})` : '';
+          })()}
+        </Button>,
       ]}
     >
       <style>{tableScrollStyles}</style>
@@ -613,6 +629,11 @@ export const DealList = () => {
         rowKey="id"
         scroll={{ x: 1000 }}
         className="hide-scrollbar"
+        dataSource={
+          showOrphanedDeals 
+            ? tableProps.dataSource 
+            : tableProps.dataSource?.filter((deal: any) => storesMap[deal.store_id])
+        }
         pagination={{
           ...tableProps.pagination,
           showSizeChanger: true,
