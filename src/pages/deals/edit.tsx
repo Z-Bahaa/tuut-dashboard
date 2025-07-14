@@ -15,6 +15,11 @@ export const DealEdit = () => {
   const [currencyDisplay, setCurrencyDisplay] = useState<string>('');
   const [dealData, setDealData] = useState<any>(null);
 
+  // Category selection states
+  const [initialSelectedCategoryIds, setInitialSelectedCategoryIds] = useState<number[]>([]);
+  const [currentSelectedCategoryIds, setCurrentSelectedCategoryIds] = useState<number[]>([]);
+  const [categoriesLoaded, setCategoriesLoaded] = useState(false);
+
   // Fetch all stores using useList
   const { data: storesData, isLoading: storesLoading } = useList({
     resource: "stores",
@@ -28,6 +33,11 @@ export const DealEdit = () => {
     resource: "countries",
   });
 
+  // Fetch all categories using useList
+  const { data: categoriesData, isLoading: categoriesLoading } = useList({
+    resource: "categories",
+  });
+
   const { open } = useNotificationProvider();
   const { mutate: deleteDeal } = useDelete();
 
@@ -37,6 +47,37 @@ export const DealEdit = () => {
       document.title = `Edit ${query.data.data.title} - Deal`;
     }
   }, [query?.data?.data?.title]);
+
+  // Fetch existing category relationships when deal data is loaded
+  useEffect(() => {
+    const fetchDealCategories = async () => {
+      if (query?.data?.data?.id) {
+        const dealId = query.data.data.id;
+        
+        try {
+          const { data: dealCategories, error } = await supabase
+            .from('deal_categories')
+            .select('category_id')
+            .eq('deal_id', dealId);
+
+          if (error) {
+            console.error('Error fetching deal categories:', error);
+            return;
+          }
+
+          const categoryIds = dealCategories?.map((dc: any) => dc.category_id) || [];
+          setInitialSelectedCategoryIds(categoryIds);
+          setCurrentSelectedCategoryIds(categoryIds);
+          setCategoriesLoaded(true);
+        } catch (error) {
+          console.error('Error fetching deal categories:', error);
+          setCategoriesLoaded(true);
+        }
+      }
+    };
+
+    fetchDealCategories();
+  }, [query?.data?.data?.id]);
 
   // Set initial values when form data is loaded
   useEffect(() => {
@@ -69,6 +110,72 @@ export const DealEdit = () => {
   }, [query?.data?.data, countriesData?.data, formProps.form]);
 
   const handleSave = async (values: any) => {
+    // Handle category relationships
+    const dealId = query?.data?.data?.id;
+    if (dealId) {
+      // Compare initial and current category selections
+      const removedCategoryIds = initialSelectedCategoryIds.filter(
+        (id: number) => !currentSelectedCategoryIds.includes(id)
+      );
+      const addedCategoryIds = currentSelectedCategoryIds.filter(
+        (id: number) => !initialSelectedCategoryIds.includes(id)
+      );
+
+      try {
+        // Delete removed category relationships
+        if (removedCategoryIds.length > 0) {
+          const { error: deleteError } = await supabase
+            .from('deal_categories')
+            .delete()
+            .eq('deal_id', dealId)
+            .in('category_id', removedCategoryIds);
+
+          if (deleteError) {
+            open({
+              type: "error",
+              message: "Failed to remove category relations",
+              description: deleteError.message,
+            });
+          }
+        }
+
+        // Add new category relationships
+        if (addedCategoryIds.length > 0) {
+          const { error: insertError } = await supabase
+            .from('deal_categories')
+            .insert(
+              addedCategoryIds.map((categoryId: number) => ({
+                deal_id: dealId,
+                category_id: categoryId
+              }))
+            );
+
+          if (insertError) {
+            open({
+              type: "error",
+              message: "Failed to create category relations",
+              description: insertError.message,
+            });
+          }
+        }
+
+        // Show success notification if changes were made
+        if (removedCategoryIds.length > 0 || addedCategoryIds.length > 0) {
+          open({
+            type: "success",
+            message: "Category relations updated successfully",
+            description: "Relations Updated",
+          });
+        }
+      } catch (error) {
+        open({
+          type: "error",
+          message: "Failed to update category relations",
+          description: String(error),
+        });
+      }
+    }
+
     if (formProps.onFinish) {
       await formProps.onFinish(values);
     } else {
@@ -150,7 +257,7 @@ export const DealEdit = () => {
       deleteButtonProps={{
         onSuccess: handleDeleteDeal,
       }}
-      isLoading={formLoading || storesLoading || countriesLoading}
+      isLoading={formLoading || storesLoading || countriesLoading || categoriesLoading}
     >
       <Form {...formProps} layout="vertical" onFinish={handleSave}>
         <Form.Item
@@ -211,6 +318,39 @@ export const DealEdit = () => {
             placeholder="Enter deal description (optional)" 
             rows={4}
           />
+        </Form.Item>
+
+        <Form.Item
+          label="Categories"
+          rules={[{ required: false, message: "Please select at least one category" }]}
+        >
+          <Select
+            mode="multiple"
+            placeholder="Select categories"
+            loading={!categoriesData || !categoriesLoaded}
+            showSearch
+            optionFilterProp="children"
+            filterOption={(input, option) => {
+              const label = option?.label || option?.children;
+              return String(label).toLowerCase().includes(input.toLowerCase());
+            }}
+            value={currentSelectedCategoryIds}
+            onChange={(values: number[]) => setCurrentSelectedCategoryIds(values)}
+            disabled={!categoriesLoaded}
+          >
+            {categoriesData?.data?.map((category: any) => (
+              <Select.Option key={category.id} value={category.id}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <img 
+                    src={category.image_url} 
+                    alt={category.title}
+                    style={{ width: '20px', height: '20px', objectFit: 'cover', borderRadius: '4px' }}
+                  />
+                  <span>{category.title}</span>
+                </div>
+              </Select.Option>
+            ))}
+          </Select>
         </Form.Item>
 
         <Form.Item
