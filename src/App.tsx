@@ -30,9 +30,13 @@ import { StoreList } from "./pages/stores/list";
 import { StoreCreate } from "./pages/stores/create";
 import { StoreEdit } from "./pages/stores/edit";
 import { StoreShow } from "./pages/stores/show";
+import { DealList } from "./pages/deals/list";
+import { DealCreate } from "./pages/deals/create";
+import { DealEdit } from "./pages/deals/edit";
+import { DealShow } from "./pages/deals/show";
 
         
-import { ShoppingOutlined } from '@ant-design/icons';
+import { ShoppingOutlined, GiftOutlined } from '@ant-design/icons';
 import { useContext } from 'react';
 import { ColorModeContext } from './contexts/color-mode';
 
@@ -121,6 +125,18 @@ function App() {
                       icon: <ShoppingOutlined style={{color: primaryColor}}/>,
                     },
                   },
+                  {
+                    name: "deals",
+                    list: "/deals",
+                    create: "/deals/create",
+                    edit: "/deals/edit/:id",
+                    show: "/deals/show/:id",
+                    meta: {
+                      canDelete: true,
+                      label: "Deals",
+                      icon: <GiftOutlined style={{color: primaryColor}}/>,
+                    },
+                  },
                 ]}
                 options={{
                   syncWithLocation: true,
@@ -158,6 +174,10 @@ function App() {
                     <Route path="/stores/create" element={<StoreCreate />} />
                     <Route path="/stores/edit/:id" element={<StoreEdit />} />
                     <Route path="/stores/show/:id" element={<StoreShow />} />
+                    <Route path="/deals" element={<DealList />} />
+                    <Route path="/deals/create" element={<DealCreate />} />
+                    <Route path="/deals/edit/:id" element={<DealEdit />} />
+                    <Route path="/deals/show/:id" element={<DealShow />} />
                     <Route path="*" element={<ErrorComponent />} />
                   </Route>
                   <Route
