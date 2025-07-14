@@ -601,12 +601,9 @@ export const DealList = () => {
         <Space>
           <Button
             type="primary"
-            icon={<EyeOutlined />}
+            icon={<EyeOutlined style={{ color: mode === "dark" ? "#000000" : "#ffffff" }} />}
             size="small"
             onClick={() => navigate(`/deals/show/${record.id}`)}
-            style={{
-              color: mode === "dark" ? "#000000" : "#ffffff"
-            }}
             className="action-button"
           />
           <Button
