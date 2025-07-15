@@ -1,6 +1,6 @@
 import { Show } from "@refinedev/antd";
 import { Typography, Button, Image, Tag, Card, Space, Avatar, Divider, Table, Popconfirm, message } from "antd";
-import { EditOutlined, ArrowLeftOutlined, GlobalOutlined, EyeOutlined, DeleteOutlined } from "@ant-design/icons";
+import { EditOutlined, ArrowLeftOutlined, GlobalOutlined, EyeOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
 import { useContext, useEffect, useState } from "react";
 import { ColorModeContext } from "../../contexts/color-mode";
@@ -122,7 +122,7 @@ export const StoreShow = () => {
             const currentTotalOffers = currentStore.total_offers || 0;
             const newTotalOffers = Math.max(0, currentTotalOffers - 1); // Ensure it doesn't go below 0
             
-            // Update the store's total_offers
+            // Update the store's total_offers in the database
             const { error: updateError } = await supabase
               .from('stores')
               .update({ total_offers: newTotalOffers })
@@ -132,6 +132,10 @@ export const StoreShow = () => {
               console.error('Failed to update store total_offers:', updateError);
               message.error("Deal deleted but failed to update store offer count");
             } else {
+              // Update the local store data to reflect the change immediately
+              if (store) {
+                store.total_offers = newTotalOffers;
+              }
               message.success("Deal deleted successfully and store offer count updated");
             }
           }
@@ -707,9 +711,21 @@ export const StoreShow = () => {
 
         {/* Store's Deals Section */}
         <Card style={{ marginBottom: "16px" }}>
-          <Title level={4} style={{ margin: "0 0 16px 0" }}>
-            Store Deals ({dealsData?.data?.length || 0})
-          </Title>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+            <Title level={4} style={{ margin: 0 }}>
+              Store Deals ({dealsData?.data?.length || 0})
+            </Title>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => navigate("/deals/create")}
+              style={{
+                color: mode === "dark" ? "#000000" : "#ffffff"
+              }}
+            >
+              Create Deal
+            </Button>
+          </div>
           
           {dealsLoading ? (
             <div>Loading deals...</div>
