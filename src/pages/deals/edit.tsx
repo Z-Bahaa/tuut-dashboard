@@ -291,6 +291,23 @@ export const DealEdit = () => {
             // Prepare store update data
             const storeUpdateData: any = { total_offers: newTotalOffers };
             
+            // Always update total_offers for any deal deletion
+            // Update the store BEFORE deleting the deal to avoid foreign key constraint
+            const { error: updateError } = await supabase
+              .from('stores')
+              .update(storeUpdateData)
+              .eq('id', dealData.store_id);
+            
+            if (updateError) {
+              console.error('Failed to update store:', updateError);
+              open({
+                type: "error",
+                message: "Failed to update store data",
+                description: "The store data could not be updated.",
+              });
+              return; // Don't delete the deal if store update fails
+            }
+            
             // Check if the deleted deal was the store's top deal
             if (currentStore.discount_id === dealData.id) {
               // Need to recalculate the top deal
@@ -306,10 +323,21 @@ export const DealEdit = () => {
               } else {
                 if (!remainingDeals || remainingDeals.length === 0) {
                   // No deals left, clear all discount fields to null
-                  storeUpdateData.discount = null;
-                  storeUpdateData.discount_unit = null;
-                  storeUpdateData.discount_type = null;
-                  storeUpdateData.discount_id = null;
+                  const discountUpdateData = {
+                    discount: null,
+                    discount_unit: null,
+                    discount_type: null,
+                    discount_id: null
+                  };
+                  
+                  const { error: discountUpdateError } = await supabase
+                    .from('stores')
+                    .update(discountUpdateData)
+                    .eq('id', dealData.store_id);
+                  
+                  if (discountUpdateError) {
+                    console.error('Failed to clear store discount fields:', discountUpdateError);
+                  }
                 } else {
                   // Find the new top deal
                   let topDeal = null;
@@ -337,35 +365,30 @@ export const DealEdit = () => {
                   }
                   
                   if (topDeal) {
+                    const discountUpdateData: any = {};
+                    
                     if (topDeal.type === 'discount' || topDeal.type === 'amountOff') {
                       // Set discount_unit based on deal type
-                      storeUpdateData.discount = topDeal.discount;
-                      storeUpdateData.discount_unit = topDeal.type === 'discount' ? '%' : '$';
+                      discountUpdateData.discount = topDeal.discount;
+                      discountUpdateData.discount_unit = topDeal.type === 'discount' ? '%' : '$';
                     } else {
                       // For BOGO and Free Shipping deals, set default values
-                      storeUpdateData.discount = 0;
-                      storeUpdateData.discount_unit = '';
+                      discountUpdateData.discount = 0;
+                      discountUpdateData.discount_unit = '';
                     }
-                    storeUpdateData.discount_type = topDeal.type;
-                    storeUpdateData.discount_id = topDeal.id;
+                    discountUpdateData.discount_type = topDeal.type;
+                    discountUpdateData.discount_id = topDeal.id;
+                    
+                    const { error: discountUpdateError } = await supabase
+                      .from('stores')
+                      .update(discountUpdateData)
+                      .eq('id', dealData.store_id);
+                    
+                    if (discountUpdateError) {
+                      console.error('Failed to update store discount fields:', discountUpdateError);
+                    }
                   }
                 }
-              }
-              
-              // Update the store BEFORE deleting the deal to avoid foreign key constraint
-              const { error: updateError } = await supabase
-                .from('stores')
-                .update(storeUpdateData)
-                .eq('id', dealData.store_id);
-              
-              if (updateError) {
-                console.error('Failed to update store:', updateError);
-                open({
-                  type: "error",
-                  message: "Failed to update store data",
-                  description: "The store data could not be updated.",
-                });
-                return; // Don't delete the deal if store update fails
               }
             }
           }
