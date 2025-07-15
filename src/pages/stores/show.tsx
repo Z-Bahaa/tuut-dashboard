@@ -1,6 +1,6 @@
-import { Show } from "@refinedev/antd";
-import { Typography, Button, Image, Tag, Card, Space, Avatar, Divider, Table, Popconfirm, message } from "antd";
-import { EditOutlined, ArrowLeftOutlined, GlobalOutlined, EyeOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import { Show, useTable } from "@refinedev/antd";
+import { Typography, Button, Image, Tag, Card, Space, Avatar, Divider, Table, Popconfirm, message, Input } from "antd";
+import { EditOutlined, ArrowLeftOutlined, GlobalOutlined, EyeOutlined, DeleteOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
 import { useContext, useEffect, useState } from "react";
 import { ColorModeContext } from "../../contexts/color-mode";
@@ -13,6 +13,8 @@ export const StoreShow = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { mode } = useContext(ColorModeContext);
+  const [titleSearchText, setTitleSearchText] = useState("");
+  const [codeSearchText, setCodeSearchText] = useState("");
 
   // Fetch store data
   const { data: storeData, isLoading: storeLoading } = useOne({
@@ -76,19 +78,41 @@ export const StoreShow = () => {
   }, [store?.id]);
 
   // Fetch store's deals
-  const { data: dealsData, isLoading: dealsLoading } = useList({
+  const { tableProps, tableQueryResult } = useTable({
     resource: "deals",
-    filters: [
-      {
-        field: "store_id",
-        operator: "eq",
-        value: id,
-      },
-    ],
+    filters: {
+      permanent: [
+        {
+          field: "store_id",
+          operator: "eq",
+          value: id,
+        },
+        {
+          field: "title",
+          operator: "contains",
+          value: titleSearchText,
+        },
+        {
+          field: "code",
+          operator: "contains",
+          value: codeSearchText,
+        },
+      ],
+    },
+    onSearch: (values: any) => {
+      setTitleSearchText((values as any).title || "");
+      setCodeSearchText((values as any).code || "");
+      return [];
+    },
+    sorters: {
+      initial: [],
+    },
     pagination: {
-      mode: "off", // Get all deals for this store
+      pageSize: 10,
     },
   });
+
+  const { data: dealsData, isLoading: dealsLoading } = tableQueryResult;
 
   // Fetch all countries for deal display
   const { data: allCountriesData } = useList({
@@ -346,6 +370,81 @@ export const StoreShow = () => {
     }
   `;
 
+  // Search functionality for table columns
+  const getColumnSearchProps = (dataIndex: string) => ({
+    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: any) => (
+      <div style={{ padding: 8 }}>
+        <Input
+          placeholder={`Search ${dataIndex}`}
+          value={selectedKeys[0]}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
+          onPressEnter={() => {
+            confirm();
+            // Trigger server-side search for specific column
+            if (dataIndex === "title") {
+              setTitleSearchText(selectedKeys[0] || "");
+            } else if (dataIndex === "code") {
+              setCodeSearchText(selectedKeys[0] || "");
+            }
+          }}
+          style={{ marginBottom: 8, display: 'block' }}
+        />
+        <Space>
+          <Button
+            type="primary"
+            onClick={() => {
+              confirm();
+              // Trigger server-side search for specific column
+              if (dataIndex === "title") {
+                setTitleSearchText(selectedKeys[0] || "");
+              } else if (dataIndex === "code") {
+                setCodeSearchText(selectedKeys[0] || "");
+              }
+            }}
+            icon={<SearchOutlined />}
+            size="small"
+            style={{ 
+              width: 90,
+              color: mode === "dark" ? "#000000" : "#ffffff"
+            }}
+          >
+            Search
+          </Button>
+          <Button
+            onClick={() => {
+              clearFilters && clearFilters();
+              // Clear server-side search for specific column
+              if (dataIndex === "title") {
+                setTitleSearchText("");
+              } else if (dataIndex === "code") {
+                setCodeSearchText("");
+              }
+            }}
+            size="small"
+            style={{ width: 90 }}
+          >
+            Reset
+          </Button>
+        </Space>
+      </div>
+    ),
+    filterIcon: (filtered: boolean) => (
+      <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />
+    ),
+    onFilter: (value: any, record: any) =>
+      record[dataIndex]
+        ? record[dataIndex].toString().toLowerCase().includes((value as string).toLowerCase())
+        : false,
+    onFilterDropdownOpenChange: (visible: boolean) => {
+      if (visible) {
+        setTimeout(() => {
+          const element = document.getElementById('search-input') as HTMLInputElement;
+          element?.select();
+        }, 100);
+      }
+    },
+  });
+
   // Deals table columns
   const dealsColumns = [
     {
@@ -353,6 +452,7 @@ export const StoreShow = () => {
       dataIndex: "title",
       key: "title",
       width: 150,
+      ...getColumnSearchProps("title"),
       render: (text: string) => (
         <div style={{ 
           fontWeight: "500", 
@@ -370,6 +470,7 @@ export const StoreShow = () => {
       dataIndex: "code",
       key: "code",
       width: 150,
+      ...getColumnSearchProps("code"),
       render: (text: string) => (
         <div style={{ 
           backgroundColor: mode === "dark" ? "#1f1f1f" : "#f0f0f0",
@@ -395,6 +496,13 @@ export const StoreShow = () => {
       dataIndex: "type",
       key: "type",
       width: 120,
+      filters: [
+        { text: 'Discount', value: 'discount' },
+        { text: 'Amount Off', value: 'amountOff' },
+        { text: 'BOGO', value: 'bogo' },
+        { text: 'Free Shipping', value: 'freeShipping' },
+      ],
+      onFilter: (value: any, record: any) => record.type === (value as string),
       render: (type: string) => {
         const typeConfig = {
           bogo: { label: "BOGO", color: "blue" },
@@ -417,6 +525,7 @@ export const StoreShow = () => {
       dataIndex: "discount",
       key: "discount",
       width: 150,
+      sorter: true,
       render: (discount: number, record: any) => {
         // Don't show discount for bogo and freeShipping types
         if (record.type === "bogo" || record.type === "freeShipping") {
@@ -494,6 +603,7 @@ export const StoreShow = () => {
       dataIndex: "click_count",
       key: "click_count",
       width: 100,
+      sorter: true,
       render: (clicks: number) => (
         <span style={{ 
           fontSize: "12px", 
@@ -510,6 +620,7 @@ export const StoreShow = () => {
       dataIndex: "expiry_date",
       key: "expiry_date",
       width: 120,
+      sorter: true,
       render: (date: string) => {
         const expiryDate = new Date(date);
         const now = new Date();
@@ -943,12 +1054,13 @@ export const StoreShow = () => {
             <>
               <style>{tableScrollStyles}</style>
               <Table
+                {...tableProps}
                 columns={dealsColumns}
-                dataSource={dealsData?.data || []}
                 rowKey="id"
                 scroll={{ x: 1000 }}
                 className="hide-scrollbar"
                 pagination={{
+                  ...tableProps.pagination,
                   showSizeChanger: true,
                   showQuickJumper: true,
                   showTotal: (total, range) =>
