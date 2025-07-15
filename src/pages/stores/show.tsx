@@ -161,17 +161,9 @@ export const StoreShow = () => {
                 
                 if (topDeal) {
                   if (topDeal.type === 'discount' || topDeal.type === 'amountOff') {
-                    // Handle discount_unit - replace "$" with currency code from country
-                    let discountUnit = topDeal.discount_unit;
-                    if (discountUnit === '$' && topDeal.country_id) {
-                      const country = countriesMap[topDeal.country_id];
-                      if (country?.currency_code?.en) {
-                        discountUnit = country.currency_code.en;
-                      }
-                    }
-                    
+                    // Set discount_unit based on deal type
                     storeUpdateData.discount = topDeal.discount;
-                    storeUpdateData.discount_unit = discountUnit;
+                    storeUpdateData.discount_unit = topDeal.type === 'discount' ? '%' : '$';
                   } else {
                     // For BOGO and Free Shipping deals, set default values
                     storeUpdateData.discount = 0;
@@ -248,15 +240,9 @@ export const StoreShow = () => {
             
             if (topDeal) {
               if (topDeal.type === 'discount' || topDeal.type === 'amountOff') {
-                let discountUnit = topDeal.discount_unit;
-                if (discountUnit === '$' && topDeal.country_id) {
-                  const country = countriesMap[topDeal.country_id];
-                  if (country?.currency_code?.en) {
-                    discountUnit = country.currency_code.en;
-                  }
-                }
+                // Set discount_unit based on deal type
                 store.discount = topDeal.discount;
-                store.discount_unit = discountUnit;
+                store.discount_unit = topDeal.type === 'discount' ? '%' : '$';
               } else {
                 store.discount = 0;
                 store.discount_unit = '';
@@ -837,7 +823,7 @@ export const StoreShow = () => {
                                 fontWeight: "600",
                                 marginLeft: "7px"
                               }}>
-                                {store.discount_unit}
+                                {store.discount_type === 'discount' ? '%' : (country?.currency_code?.en || '$')}
                               </span>
                               <span style={{ 
                                 fontSize: "17px", 

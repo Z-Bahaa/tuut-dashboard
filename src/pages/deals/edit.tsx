@@ -243,17 +243,9 @@ export const DealEdit = () => {
             
             if (topDeal) {
               if (topDeal.type === 'discount' || topDeal.type === 'amountOff') {
-                // Handle discount_unit - replace "$" with currency code from country
-                let discountUnit = topDeal.discount_unit;
-                if (discountUnit === '$' && topDeal.country_id) {
-                  const country = countriesData?.data?.find((country: any) => country.id === topDeal.country_id);
-                  if (country?.currency_code?.en) {
-                    discountUnit = country.currency_code.en;
-                  }
-                }
-                
+                // Set discount_unit based on deal type
                 storeUpdateData.discount = topDeal.discount;
-                storeUpdateData.discount_unit = discountUnit;
+                storeUpdateData.discount_unit = topDeal.type === 'discount' ? '%' : '$';
               } else {
                 // For BOGO and Free Shipping deals, set default values
                 storeUpdateData.discount = 0;
@@ -346,17 +338,9 @@ export const DealEdit = () => {
                   
                   if (topDeal) {
                     if (topDeal.type === 'discount' || topDeal.type === 'amountOff') {
-                      // Handle discount_unit - replace "$" with currency code from country
-                      let discountUnit = topDeal.discount_unit;
-                      if (discountUnit === '$' && topDeal.country_id) {
-                        const country = countriesData?.data?.find((country: any) => country.id === topDeal.country_id);
-                        if (country?.currency_code?.en) {
-                          discountUnit = country.currency_code.en;
-                        }
-                      }
-                      
+                      // Set discount_unit based on deal type
                       storeUpdateData.discount = topDeal.discount;
-                      storeUpdateData.discount_unit = discountUnit;
+                      storeUpdateData.discount_unit = topDeal.type === 'discount' ? '%' : '$';
                     } else {
                       // For BOGO and Free Shipping deals, set default values
                       storeUpdateData.discount = 0;

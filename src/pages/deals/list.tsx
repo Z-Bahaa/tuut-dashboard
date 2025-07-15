@@ -79,23 +79,9 @@ export const DealList = () => {
                   
                   if (topDeal) {
                     if (topDeal.type === 'discount' || topDeal.type === 'amountOff') {
-                      // Handle discount_unit - replace "$" with currency code from country
-                      let discountUnit = topDeal.discount_unit;
-                      if (discountUnit === '$' && topDeal.country_id) {
-                        // Get country data for currency code
-                        const { data: countryData } = await supabase
-                          .from('countries')
-                          .select('currency_code')
-                          .eq('id', topDeal.country_id)
-                          .single();
-                        
-                        if (countryData?.currency_code?.en) {
-                          discountUnit = countryData.currency_code.en;
-                        }
-                      }
-                      
+                      // Set discount_unit based on deal type
                       storeUpdateData.discount = topDeal.discount;
-                      storeUpdateData.discount_unit = discountUnit;
+                      storeUpdateData.discount_unit = topDeal.type === 'discount' ? '%' : '$';
                     } else {
                       // For BOGO and Free Shipping deals, set default values
                       storeUpdateData.discount = 0;

@@ -122,15 +122,8 @@ export const DealCreate = () => {
                 if (values.type === 'discount' || values.type === 'amountOff') {
                   storeUpdateData.discount = values.discount;
                   
-                  // Handle discount_unit - replace "$" with currency code from country
-                  let discountUnit = values.discount_unit;
-                  if (discountUnit === '$' && values.country_id) {
-                    const selectedCountry = countriesData?.data?.find((country: any) => country.id === values.country_id);
-                    if (selectedCountry?.currency_code?.en) {
-                      discountUnit = selectedCountry.currency_code.en;
-                    }
-                  }
-                  storeUpdateData.discount_unit = discountUnit;
+                  // Set discount_unit based on deal type
+                  storeUpdateData.discount_unit = values.type === 'discount' ? '%' : '$';
                 } else {
                   // For BOGO and Free Shipping deals, set default values
                   storeUpdateData.discount = 0;
