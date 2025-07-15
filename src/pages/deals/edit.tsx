@@ -533,6 +533,7 @@ export const DealEdit = () => {
           <Select
             placeholder="Select a store"
             loading={!storesData}
+            disabled={true}
             showSearch
             optionFilterProp="children"
             filterOption={(input, option) => {
@@ -565,21 +566,9 @@ export const DealEdit = () => {
           <Select
             placeholder="Select a country"
             loading={!countriesData}
+            disabled={true}
             showSearch
             optionFilterProp="children"
-            onChange={(value) => {
-              setSelectedCountryId(value);
-              // Update currency display when country changes
-              if (selectedType === 'amountOff' && value) {
-                const selectedCountry = countriesData?.data?.find((country: any) => country.id === value);
-                if (selectedCountry?.currency) {
-                  const currencyData = selectedCountry.currency;
-                  setCurrencyDisplay(currencyData.en || currencyData.value || '$');
-                } else {
-                  setCurrencyDisplay('$');
-                }
-              }
-            }}
             filterOption={(input, option) => {
               const label = option?.label || option?.children;
               return String(label).toLowerCase().includes(input.toLowerCase());
