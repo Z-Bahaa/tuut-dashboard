@@ -410,21 +410,14 @@ export const StoreList = () => {
         {...tableProps}
         columns={columns}
         rowKey="id"
-        scroll={{ 
-          y: 'calc(100vh - 320px)', // Viewport width minus scrollbar and padding
-          x: 'calc(100vw - 320px)' // Viewport width minus scrollbar and padding
-        }}
+        scroll={{ x: 1000 }}
+        className="hide-scrollbar"
         pagination={{
           ...tableProps.pagination,
           showSizeChanger: true,
           showQuickJumper: true,
           showTotal: (total, range) =>
             `${range[0]}-${range[1]} of ${total} items`,
-        }}
-        className="hide-scrollbar"
-        style={{ 
-          maxHeight: 'calc(100vh - 200px)',
-          overflow: 'auto'
         }}
       />
       </List>
