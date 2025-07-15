@@ -504,31 +504,7 @@ export const StoreShow = () => {
         </span>
       ),
     },
-    {
-      title: "Country",
-      dataIndex: "country_id",
-      key: "country_id",
-      width: 150,
-      render: (value: number) => {
-        const country = countriesMap[value];
-        if (!country) {
-          return <span style={{ color: "#999" }}>Unknown Country</span>;
-        }
-        
-        return (
-          <Space>
-            <Image
-              src={country.image_url}
-              width={16}
-              height={16}
-              style={{ borderRadius: "4px" }}
-              preview={false}
-            />
-            <span>{country.value}</span>
-          </Space>
-        );
-      },
-    },
+
     {
       title: "Expiry Date",
       dataIndex: "expiry_date",
