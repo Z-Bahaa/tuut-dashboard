@@ -110,10 +110,7 @@ export const StoreShow = () => {
   // Custom delete function
   const handleDeleteDeal = async (deal: any) => {
     try {
-      // Delete the deal record
-      await deleteDeal({ resource: "deals", id: deal.id });
-
-      // If deal deletion was successful, decrement the store's total_offers
+      // If deal deletion was successful, update store data
       if (deal.store_id) {
         try {
           // Get current store data
@@ -122,30 +119,156 @@ export const StoreShow = () => {
             const currentTotalOffers = currentStore.total_offers || 0;
             const newTotalOffers = Math.max(0, currentTotalOffers - 1); // Ensure it doesn't go below 0
             
-            // Update the store's total_offers in the database
-            const { error: updateError } = await supabase
-              .from('stores')
-              .update({ total_offers: newTotalOffers })
-              .eq('id', deal.store_id);
+            // Prepare store update data
+            const storeUpdateData: any = { total_offers: newTotalOffers };
             
-            if (updateError) {
-              console.error('Failed to update store total_offers:', updateError);
-              message.error("Deal deleted but failed to update store offer count");
-            } else {
-              // Update the local store data to reflect the change immediately
-              if (store) {
-                store.total_offers = newTotalOffers;
+            // Check if the deleted deal was the store's top deal
+            if (currentStore.discount_id === deal.id) {
+              // Need to recalculate the top deal
+              const remainingDeals = dealsData?.data?.filter((d: any) => d.id !== deal.id) || [];
+              
+              if (remainingDeals.length === 0) {
+                // No deals left, clear all discount fields to null
+                storeUpdateData.discount = null;
+                storeUpdateData.discount_unit = null;
+                storeUpdateData.discount_type = null;
+                storeUpdateData.discount_id = null;
+              } else {
+                // Find the new top deal
+                let topDeal = null;
+                let highestDiscount = -1;
+                let bogoDeal = null; // Store BOGO/Free Shipping deal as fallback
+                
+                for (const remainingDeal of remainingDeals) {
+                  if (remainingDeal.type === 'discount' || remainingDeal.type === 'amountOff') {
+                    const dealDiscount = remainingDeal.discount || 0;
+                    if (dealDiscount > highestDiscount) {
+                      highestDiscount = dealDiscount;
+                      topDeal = remainingDeal;
+                    }
+                  } else if (remainingDeal.type === 'bogo' || remainingDeal.type === 'freeShipping') {
+                    // Store BOGO/Free Shipping deal as fallback, but don't break
+                    if (!bogoDeal) {
+                      bogoDeal = remainingDeal;
+                    }
+                  }
+                }
+                
+                // If no discount/amountOff deals found, use BOGO/Free Shipping as fallback
+                if (!topDeal && bogoDeal) {
+                  topDeal = bogoDeal;
+                }
+                
+                if (topDeal) {
+                  if (topDeal.type === 'discount' || topDeal.type === 'amountOff') {
+                    // Handle discount_unit - replace "$" with currency code from country
+                    let discountUnit = topDeal.discount_unit;
+                    if (discountUnit === '$' && topDeal.country_id) {
+                      const country = countriesMap[topDeal.country_id];
+                      if (country?.currency_code?.en) {
+                        discountUnit = country.currency_code.en;
+                      }
+                    }
+                    
+                    storeUpdateData.discount = topDeal.discount;
+                    storeUpdateData.discount_unit = discountUnit;
+                  } else {
+                    // For BOGO and Free Shipping deals, set default values
+                    storeUpdateData.discount = 0;
+                    storeUpdateData.discount_unit = '';
+                  }
+                  storeUpdateData.discount_type = topDeal.type;
+                  storeUpdateData.discount_id = topDeal.id;
+                }
               }
-              message.success("Deal deleted successfully and store offer count updated");
+              
+              // Update the store BEFORE deleting the deal to avoid foreign key constraint
+              const { error: updateError } = await supabase
+                .from('stores')
+                .update(storeUpdateData)
+                .eq('id', deal.store_id);
+              
+              if (updateError) {
+                console.error('Failed to update store:', updateError);
+                message.error("Failed to update store data");
+                return; // Don't delete the deal if store update fails
+              }
             }
           }
         } catch (error) {
-          console.error('Error updating store total_offers:', error);
-          message.error("Deal deleted but failed to update store offer count");
+          console.error('Error updating store:', error);
+          message.error("Failed to update store data");
+          return; // Don't delete the deal if store update fails
         }
-      } else {
-        message.success("Deal deleted successfully");
       }
+      
+      // Now delete the deal record
+      await deleteDeal({ resource: "deals", id: deal.id });
+
+      // Update local store data if needed
+      if (deal.store_id && store) {
+        const currentTotalOffers = store.total_offers || 0;
+        const newTotalOffers = Math.max(0, currentTotalOffers - 1);
+        store.total_offers = newTotalOffers;
+        
+        // Update local discount data if this was the top deal
+        if (store.discount_id === deal.id) {
+          const remainingDeals = dealsData?.data?.filter((d: any) => d.id !== deal.id) || [];
+          
+          if (remainingDeals.length === 0) {
+            store.discount = null;
+            store.discount_unit = null;
+            store.discount_type = null;
+            store.discount_id = null;
+          } else {
+            // Find the new top deal for local update
+            let topDeal = null;
+            let highestDiscount = -1;
+            let bogoDeal = null; // Store BOGO/Free Shipping deal as fallback
+            
+            for (const remainingDeal of remainingDeals) {
+              if (remainingDeal.type === 'discount' || remainingDeal.type === 'amountOff') {
+                const dealDiscount = remainingDeal.discount || 0;
+                if (dealDiscount > highestDiscount) {
+                  highestDiscount = dealDiscount;
+                  topDeal = remainingDeal;
+                }
+              } else if (remainingDeal.type === 'bogo' || remainingDeal.type === 'freeShipping') {
+                // Store BOGO/Free Shipping deal as fallback, but don't break
+                if (!bogoDeal) {
+                  bogoDeal = remainingDeal;
+                }
+              }
+            }
+            
+            // If no discount/amountOff deals found, use BOGO/Free Shipping as fallback
+            if (!topDeal && bogoDeal) {
+              topDeal = bogoDeal;
+            }
+            
+            if (topDeal) {
+              if (topDeal.type === 'discount' || topDeal.type === 'amountOff') {
+                let discountUnit = topDeal.discount_unit;
+                if (discountUnit === '$' && topDeal.country_id) {
+                  const country = countriesMap[topDeal.country_id];
+                  if (country?.currency_code?.en) {
+                    discountUnit = country.currency_code.en;
+                  }
+                }
+                store.discount = topDeal.discount;
+                store.discount_unit = discountUnit;
+              } else {
+                store.discount = 0;
+                store.discount_unit = '';
+              }
+              store.discount_type = topDeal.type;
+              store.discount_id = topDeal.id;
+            }
+          }
+        }
+      }
+      
+      message.success("Deal deleted successfully and store data updated");
     } catch (error) {
       message.error("Failed to delete deal");
     }

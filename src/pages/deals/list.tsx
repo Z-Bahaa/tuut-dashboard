@@ -20,10 +20,7 @@ export const DealList = () => {
   // Custom delete function
   const handleDeleteDeal = async (deal: any) => {
     try {
-      // Delete the deal record
-      await deleteDeal({ resource: "deals", id: deal.id });
-
-      // If deal deletion was successful, decrement the store's total_offers
+      // If deal deletion was successful, update store data
       if (deal.store_id) {
         try {
           // Get current store data
@@ -32,42 +29,120 @@ export const DealList = () => {
             const currentTotalOffers = currentStore.total_offers || 0;
             const newTotalOffers = Math.max(0, currentTotalOffers - 1); // Ensure it doesn't go below 0
             
-            // Update the store's total_offers
-            const { error: updateError } = await supabase
-              .from('stores')
-              .update({ total_offers: newTotalOffers })
-              .eq('id', deal.store_id);
+            // Prepare store update data
+            const storeUpdateData: any = { total_offers: newTotalOffers };
             
-            if (updateError) {
-              console.error('Failed to update store total_offers:', updateError);
-              open({
-                type: "error",
-                message: "Deal deleted but failed to update store offer count",
-                description: "The deal was deleted successfully, but the store's offer count may not be accurate.",
-              });
-            } else {
-              open({
-                type: "success",
-                message: "Deal deleted successfully",
-                description: "Deal has been removed and store offer count updated.",
-              });
+            // Check if the deleted deal was the store's top deal
+            if (currentStore.discount_id === deal.id) {
+              // Need to recalculate the top deal
+              // Get all deals for this store except the deleted one
+              const { data: remainingDeals, error: dealsError } = await supabase
+                .from('deals')
+                .select('*')
+                .eq('store_id', deal.store_id)
+                .neq('id', deal.id);
+              
+              if (dealsError) {
+                console.error('Failed to fetch remaining deals:', dealsError);
+              } else {
+                if (!remainingDeals || remainingDeals.length === 0) {
+                  // No deals left, clear all discount fields to null
+                  storeUpdateData.discount = null;
+                  storeUpdateData.discount_unit = null;
+                  storeUpdateData.discount_type = null;
+                  storeUpdateData.discount_id = null;
+                } else {
+                  // Find the new top deal
+                  let topDeal = null;
+                  let highestDiscount = -1;
+                  let bogoDeal = null; // Store BOGO/Free Shipping deal as fallback
+                  
+                  for (const remainingDeal of remainingDeals) {
+                    if (remainingDeal.type === 'discount' || remainingDeal.type === 'amountOff') {
+                      const dealDiscount = remainingDeal.discount || 0;
+                      if (dealDiscount > highestDiscount) {
+                        highestDiscount = dealDiscount;
+                        topDeal = remainingDeal;
+                      }
+                    } else if (remainingDeal.type === 'bogo' || remainingDeal.type === 'freeShipping') {
+                      // Store BOGO/Free Shipping deal as fallback, but don't break
+                      if (!bogoDeal) {
+                        bogoDeal = remainingDeal;
+                      }
+                    }
+                  }
+                  
+                  // If no discount/amountOff deals found, use BOGO/Free Shipping as fallback
+                  if (!topDeal && bogoDeal) {
+                    topDeal = bogoDeal;
+                  }
+                  
+                  if (topDeal) {
+                    if (topDeal.type === 'discount' || topDeal.type === 'amountOff') {
+                      // Handle discount_unit - replace "$" with currency code from country
+                      let discountUnit = topDeal.discount_unit;
+                      if (discountUnit === '$' && topDeal.country_id) {
+                        // Get country data for currency code
+                        const { data: countryData } = await supabase
+                          .from('countries')
+                          .select('currency_code')
+                          .eq('id', topDeal.country_id)
+                          .single();
+                        
+                        if (countryData?.currency_code?.en) {
+                          discountUnit = countryData.currency_code.en;
+                        }
+                      }
+                      
+                      storeUpdateData.discount = topDeal.discount;
+                      storeUpdateData.discount_unit = discountUnit;
+                    } else {
+                      // For BOGO and Free Shipping deals, set default values
+                      storeUpdateData.discount = 0;
+                      storeUpdateData.discount_unit = '';
+                    }
+                    storeUpdateData.discount_type = topDeal.type;
+                    storeUpdateData.discount_id = topDeal.id;
+                  }
+                }
+              }
+              
+              // Update the store BEFORE deleting the deal to avoid foreign key constraint
+              const { error: updateError } = await supabase
+                .from('stores')
+                .update(storeUpdateData)
+                .eq('id', deal.store_id);
+              
+              if (updateError) {
+                console.error('Failed to update store:', updateError);
+                open({
+                  type: "error",
+                  message: "Failed to update store data",
+                  description: "The store data could not be updated.",
+                });
+                return; // Don't delete the deal if store update fails
+              }
             }
           }
         } catch (error) {
-          console.error('Error updating store total_offers:', error);
+          console.error('Error updating store:', error);
           open({
             type: "error",
-            message: "Deal deleted but failed to update store offer count",
-            description: "The deal was deleted successfully, but the store's offer count may not be accurate.",
+            message: "Failed to update store data",
+            description: "The store data could not be updated.",
           });
+          return; // Don't delete the deal if store update fails
         }
-      } else {
-        open({
-          type: "success",
-          message: "Deal deleted successfully",
-          description: "Deal has been removed",
-        });
       }
+      
+      // Now delete the deal record
+      await deleteDeal({ resource: "deals", id: deal.id });
+      
+      open({
+        type: "success",
+        message: "Deal deleted successfully",
+        description: "Deal has been removed and store data updated.",
+      });
     } catch (error) {
       open({
         type: "error",
