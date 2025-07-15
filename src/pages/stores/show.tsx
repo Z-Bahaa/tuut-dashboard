@@ -569,36 +569,18 @@ export const StoreShow = () => {
                 </Title>
                 
                 {store.slug && (
-                      <Text type="secondary" style={{ fontSize: "16px", display: "block", marginBottom: "8px" }}>
+                      <Text type="secondary" style={{ fontSize: "16px", display: "block", marginBottom: "4px" }}>
                         @{store.slug}
                   </Text>
                 )}
                   </div>
 
                                   {/* Status Tags */}
-                  <div style={{ display: "flex", gap: "8px", marginTop: "6px", flexWrap: "wrap", justifyContent: "flex-end" }}>
-                    <Tag 
-                      color={store.is_active ? "green" : "default"}
-                      style={{ 
-                        fontSize: "14px",
-                        padding: "4px 8px",
-                        height: "auto",
-                        minWidth: "80px",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        display: "flex",
-                        textAlign: "center",
-                        backgroundColor: mode === "light" ? "#e8e8e8" : undefined,
-                        borderColor: mode === "light" ? "#bfbfbf" : undefined,
-                        color: mode === "light" ? "#434343" : undefined,
-                      }}
-                    >
-                      {store.is_active ? "Active" : "Inactive"}
-                    </Tag>
-                    
-                    {store.total_offers !== undefined && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "6px", alignItems: "flex-end" }}>
+                    {/* Top row - Active/Inactive and Offers tags */}
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
                       <Tag 
-                        color="blue"
+                        color={store.is_active ? "green" : "default"}
                         style={{ 
                           fontSize: "14px",
                           padding: "4px 8px",
@@ -608,11 +590,101 @@ export const StoreShow = () => {
                           alignItems: "center",
                           display: "flex",
                           textAlign: "center",
+                          backgroundColor: mode === "light" ? "#e8e8e8" : undefined,
+                          borderColor: mode === "light" ? "#bfbfbf" : undefined,
+                          color: mode === "light" ? "#434343" : undefined,
                         }}
                       >
-                        {store.total_offers} Offers
+                        {store.is_active ? "Active" : "Inactive"}
                       </Tag>
-                    )}
+                      
+                      {store.total_offers !== undefined && (
+                        <Tag 
+                          color="blue"
+                          style={{ 
+                            fontSize: "14px",
+                            padding: "4px 8px",
+                            height: "auto",
+                            minWidth: "80px",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            display: "flex",
+                            textAlign: "center",
+                          }}
+                        >
+                          {store.total_offers} Offers
+                        </Tag>
+                      )}
+                    </div>
+
+                    {/* Bottom row - Discount tag with same width as wrapper */}
+                    {store.discount_unit && store.total_offers > 0 && (() => {
+                      const deals = dealsData?.data || [];
+                      const discountDeals = deals.filter((deal: any) => 
+                        deal.type === 'discount' || deal.type === 'amountOff'
+                      );
+                      
+                      if (discountDeals.length > 0) {
+                        // Calculate average discount
+                        const totalDiscount = discountDeals.reduce((sum: number, deal: any) => sum + (deal.discount || 0), 0);
+                        const avgDiscount = Math.round(totalDiscount / discountDeals.length);
+                        
+                        return (
+                          <div style={{ 
+                            display: "flex", 
+                            gap: "8px", 
+                            flexWrap: "wrap", 
+                            justifyContent: "flex-end",
+                            width: "100%"
+                          }}>
+                            <Tag 
+                              style={{ 
+                                fontSize: "22px",
+                                padding: "10px 20px",
+                                height: "auto",
+                                minWidth: "144px",
+                                justifyContent: "center",
+                                alignItems: "center",
+                                display: "flex",
+                                textAlign: "center",
+                                color: mode === "light" ? "#722ed1" : "#faad14",
+                                borderColor: mode === "light" ? "#722ed1" : "#faad14",
+                                backgroundColor: "transparent",
+                                flex: "1",
+                                maxWidth: "fit-content",
+                                cursor: "pointer",
+                                transition: "all 0.2s ease"
+                              }}
+                              onClick={() => {
+                                if (store.discount_id) {
+                                  navigate(`/deals/show/${store.discount_id}`);
+                                }
+                              }}
+                            >
+                              <span style={{ fontSize: "22px", fontWeight: "700" }}>{avgDiscount}</span>
+                              <span style={{ 
+                                fontSize: "19px", 
+                                opacity: 0.9,
+                                textTransform: "uppercase",
+                                fontWeight: "600",
+                                marginLeft: "7px"
+                              }}>
+                                {store.discount_unit}
+                              </span>
+                              <span style={{ 
+                                fontSize: "17px", 
+                                opacity: 0.8,
+                                fontWeight: "600",
+                                marginLeft: "7px"
+                              }}>
+                                OFF
+                              </span>
+                            </Tag>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                 </div>
 
