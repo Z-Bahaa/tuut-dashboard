@@ -579,8 +579,28 @@ export const StoreShow = () => {
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "6px", alignItems: "flex-end" }}>
                     {/* Top row - Active/Inactive and Offers tags */}
                     <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                    <Tag 
+                      color={store.is_active ? "green" : "default"}
+                      style={{ 
+                        fontSize: "14px",
+                        padding: "4px 8px",
+                        height: "auto",
+                        minWidth: "80px",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        display: "flex",
+                        textAlign: "center",
+                        backgroundColor: mode === "light" ? "#e8e8e8" : undefined,
+                        borderColor: mode === "light" ? "#bfbfbf" : undefined,
+                        color: mode === "light" ? "#434343" : undefined,
+                      }}
+                    >
+                      {store.is_active ? "Active" : "Inactive"}
+                    </Tag>
+                    
+                    {store.total_offers !== undefined && (
                       <Tag 
-                        color={store.is_active ? "green" : "default"}
+                        color="blue"
                         style={{ 
                           fontSize: "14px",
                           padding: "4px 8px",
@@ -590,45 +610,70 @@ export const StoreShow = () => {
                           alignItems: "center",
                           display: "flex",
                           textAlign: "center",
-                          backgroundColor: mode === "light" ? "#e8e8e8" : undefined,
-                          borderColor: mode === "light" ? "#bfbfbf" : undefined,
-                          color: mode === "light" ? "#434343" : undefined,
                         }}
                       >
-                        {store.is_active ? "Active" : "Inactive"}
+                        {store.total_offers} Offers
                       </Tag>
-                      
-                      {store.total_offers !== undefined && (
-                        <Tag 
-                          color="blue"
-                          style={{ 
-                            fontSize: "14px",
-                            padding: "4px 8px",
-                            height: "auto",
-                            minWidth: "80px",
-                            justifyContent: "center",
-                            alignItems: "center",
-                            display: "flex",
-                            textAlign: "center",
-                          }}
-                        >
-                          {store.total_offers} Offers
-                        </Tag>
-                      )}
+                    )}
                     </div>
 
                     {/* Bottom row - Discount tag with same width as wrapper */}
-                    {store.discount_unit && store.total_offers > 0 && (() => {
+                    {store.discount_id && store.total_offers > 0 && (() => {
                       const deals = dealsData?.data || [];
+                      
+                      // For BOGO and Free Shipping, show the tag directly
+                      if (store.discount_type === 'bogo' || store.discount_type === 'freeShipping') {
+                        const typeConfig = {
+                          bogo: { label: "BOGO", color: "blue" },
+                          freeShipping: { label: "Free Shipping", color: "green" }
+                        };
+                        
+                        const config = typeConfig[store.discount_type as keyof typeof typeConfig];
+                        
+                        return (
+                          <div style={{ 
+                            display: "flex", 
+                            gap: "8px", 
+                            flexWrap: "wrap", 
+                            justifyContent: "flex-end",
+                            width: "100%"
+                          }}>
+                            <Tag 
+                              color={config.color}
+                              style={{ 
+                                fontSize: "22px",
+                                padding: "10px 20px",
+                                height: "auto",
+                                minWidth: "144px",
+                                justifyContent: "center",
+                                alignItems: "center",
+                                display: "flex",
+                                textAlign: "center",
+                                flex: "1",
+                                maxWidth: "fit-content",
+                                cursor: "pointer",
+                                transition: "all 0.2s ease"
+                              }}
+                              onClick={() => {
+                                if (store.discount_id) {
+                                  navigate(`/deals/show/${store.discount_id}`);
+                                }
+                              }}
+                            >
+                              <span style={{ fontSize: "22px", fontWeight: "700" }}>
+                                {config.label}
+                              </span>
+                            </Tag>
+                          </div>
+                        );
+                      }
+                      
+                      // For discount and amountOff deals, calculate average discount
                       const discountDeals = deals.filter((deal: any) => 
                         deal.type === 'discount' || deal.type === 'amountOff'
                       );
                       
                       if (discountDeals.length > 0) {
-                        // Calculate average discount
-                        const totalDiscount = discountDeals.reduce((sum: number, deal: any) => sum + (deal.discount || 0), 0);
-                        const avgDiscount = Math.round(totalDiscount / discountDeals.length);
-                        
                         return (
                           <div style={{ 
                             display: "flex", 
@@ -661,7 +706,7 @@ export const StoreShow = () => {
                                 }
                               }}
                             >
-                              <span style={{ fontSize: "22px", fontWeight: "700" }}>{avgDiscount}</span>
+                              <span style={{ fontSize: "22px", fontWeight: "700" }}>{store.discount}</span>
                               <span style={{ 
                                 fontSize: "19px", 
                                 opacity: 0.9,

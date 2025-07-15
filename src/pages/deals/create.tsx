@@ -82,42 +82,90 @@ export const DealCreate = () => {
           }
         }
         
-        // If deal creation was successful, increment the store's total_offers
-        if (values.store_id) {
+        // If deal creation was successful, update store's discount snapshot and total_offers
+        if (values.store_id && (result as any)?.data?.id) {
           try {
+            const dealId = (result as any).data.id;
+            
             // Get current store data
             const currentStore = storesData?.data?.find((store: any) => store.id === values.store_id);
             if (currentStore) {
               const currentTotalOffers = currentStore.total_offers || 0;
               const newTotalOffers = currentTotalOffers + 1;
               
-              // Update the store's total_offers
+              // Prepare store update data
+              const storeUpdateData: any = { total_offers: newTotalOffers };
+              
+              // Check if this deal should become the top discount
+              const shouldUpdateDiscount = (() => {
+                // If store has no discount_id (no deals yet), any deal can become the top discount
+                if (!currentStore.discount_id) {
+                  return true;
+                }
+                
+                // Only compare if this deal has discount information
+                if (values.type === 'discount' || values.type === 'amountOff') {
+                  const currentDiscount = currentStore.discount || 0;
+                  const newDiscount = values.discount || 0;
+                  
+                  // Compare discount values (higher discount wins)
+                  return newDiscount > currentDiscount;
+                }
+                
+                return false;
+              })();
+              
+              // Update discount snapshot if this deal is better
+              if (shouldUpdateDiscount) {
+                // For discount and amountOff deals, use the discount values
+                if (values.type === 'discount' || values.type === 'amountOff') {
+                  storeUpdateData.discount = values.discount;
+                  
+                  // Handle discount_unit - replace "$" with currency code from country
+                  let discountUnit = values.discount_unit;
+                  if (discountUnit === '$' && values.country_id) {
+                    const selectedCountry = countriesData?.data?.find((country: any) => country.id === values.country_id);
+                    if (selectedCountry?.currency_code?.en) {
+                      discountUnit = selectedCountry.currency_code.en;
+                    }
+                  }
+                  storeUpdateData.discount_unit = discountUnit;
+                } else {
+                  // For BOGO and Free Shipping deals, set default values
+                  storeUpdateData.discount = 0;
+                  storeUpdateData.discount_unit = '';
+                }
+                storeUpdateData.discount_type = values.type;
+                storeUpdateData.discount_id = dealId;
+              }
+              
+              // Update the store
               const { error: updateError } = await supabase
                 .from('stores')
-                .update({ total_offers: newTotalOffers })
+                .update(storeUpdateData)
                 .eq('id', values.store_id);
               
               if (updateError) {
-                console.error('Failed to update store total_offers:', updateError);
+                console.error('Failed to update store:', updateError);
                 open({
                   type: "error",
-                  message: "Deal created but failed to update store offer count",
-                  description: "The deal was created successfully, but the store's offer count may not be accurate.",
+                  message: "Deal created but failed to update store",
+                  description: "The deal was created successfully, but the store's data may not be accurate.",
                 });
               } else {
                 open({
                   type: "success",
                   message: "Store updated successfully",
-                  description: "store offer count has been updated successfully.",
+                  description: "Store data has been updated successfully.",
                 });
               }
             }
           } catch (error) {
-            console.error('Error updating store total_offers:', error);
+            console.error('Error updating store:', error);
             open({
               type: "error",
-              message: "Deal created but failed to update store offer count",
-              description: "The deal was created successfully, but the store's offer count may not be accurate.",
+              message: "Deal created but failed to update store",
+              description: "The deal was created successfully, but the store's data may not be accurate.",
             });
           }
         }
