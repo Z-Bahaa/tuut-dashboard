@@ -4,9 +4,12 @@ import { SaveOutlined } from "@ant-design/icons";
 import { useContext, useState, useEffect } from "react";
 import { ColorModeContext } from "../../contexts/color-mode";
 import { useList, useDelete } from "@refinedev/core";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabaseClient as supabase } from "../../utility/supabaseClient";
 
 export const DealEdit = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { mode } = useContext(ColorModeContext);
   const { formProps, saveButtonProps, formLoading, query } = useForm();
   
@@ -305,6 +308,10 @@ export const DealEdit = () => {
         message: "Deal deleted successfully",
         description: "Deal has been removed and store data updated.",
       });
+      
+      // Navigate back to the previous page or deals list as fallback
+      const from = location.state?.from || "/deals";
+      navigate(from);
     } catch (error) {
       open({
         type: "error",
