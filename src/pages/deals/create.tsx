@@ -15,6 +15,7 @@ export const DealCreate = () => {
   const [selectedType, setSelectedType] = useState<string>('');
   const [selectedCountryId, setSelectedCountryId] = useState<number | null>(null);
   const [currencyDisplay, setCurrencyDisplay] = useState<string>('');
+  const [selectedStoreCountryId, setSelectedStoreCountryId] = useState<number | null>(null);
 
   // Fetch all stores using useList
   const { data: storesData, isLoading: storesLoading } = useList({
@@ -295,6 +296,27 @@ export const DealCreate = () => {
             loading={!storesData}
             showSearch
             optionFilterProp="children"
+            onChange={(value) => {
+              // Get the selected store's country
+              const selectedStore = storesData?.data?.find((store: any) => store.id === value);
+              if (selectedStore) {
+                setSelectedStoreCountryId(selectedStore.country_id);
+                setSelectedCountryId(selectedStore.country_id);
+                // Set the country_id in the form
+                formProps.form?.setFieldValue('country_id', selectedStore.country_id);
+                
+                // Update currency display if type is amountOff
+                if (selectedType === 'amountOff' && selectedStore.country_id) {
+                  const selectedCountry = countriesData?.data?.find((country: any) => country.id === selectedStore.country_id);
+                  if (selectedCountry?.currency) {
+                    const currencyData = selectedCountry.currency;
+                    setCurrencyDisplay(currencyData.en || currencyData.value || '$');
+                  } else {
+                    setCurrencyDisplay('$');
+                  }
+                }
+              }
+            }}
             filterOption={(input, option) => {
               const label = option?.label || option?.children;
               return String(label).toLowerCase().includes(input.toLowerCase());
@@ -325,30 +347,9 @@ export const DealCreate = () => {
           <Select
             placeholder="Select a country"
             loading={!countriesData}
+            disabled={true}
             showSearch
             optionFilterProp="children"
-            onChange={(value) => {
-              console.log('Country onChange called with value:', value);
-              console.log('Current selectedType:', selectedType);
-              setSelectedCountryId(value);
-              // Update currency display when country changes
-              if (selectedType === 'amountOff' && value) {
-                console.log('Processing amountOff with country value:', value);
-                const selectedCountry = countriesData?.data?.find((country: any) => country.id === value);
-                console.log('Selected Country Data:', selectedCountry);
-                console.log('Selected Country Currency:', selectedCountry?.currency);
-                if (selectedCountry?.currency) {
-                  console.log('Currency Data (already object):', selectedCountry.currency);
-                  const currencyData = selectedCountry.currency;
-                  setCurrencyDisplay(currencyData.en || currencyData.value || '$');
-                } else {
-                  console.log('No currency field found');
-                  setCurrencyDisplay('$');
-                }
-              } else {
-                console.log('Not processing - selectedType is not amountOff or no value');
-              }
-            }}
             filterOption={(input, option) => {
               const label = option?.label || option?.children;
               return String(label).toLowerCase().includes(input.toLowerCase());
