@@ -411,6 +411,7 @@ export const StoreEdit = () => {
           <Select
             placeholder="Select a country"
             loading={!countriesData}
+            disabled={true}
             showSearch
             optionFilterProp="children"
             filterOption={(input, option) => {

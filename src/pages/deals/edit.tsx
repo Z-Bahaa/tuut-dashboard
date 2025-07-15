@@ -181,10 +181,10 @@ export const DealEdit = () => {
 
     // Call the original form submit function
     if (formProps.onFinish) {
-      const result = await formProps.onFinish(values);
+      await formProps.onFinish(values);
       
       // After successful edit, recalculate store's top discount fields
-      if (result && values.store_id) {
+      if (values.store_id) {
         try {
           // Get all deals for this store to recalculate the top deal
           const { data: allStoreDeals, error: dealsError } = await supabase
