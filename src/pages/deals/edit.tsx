@@ -179,8 +179,104 @@ export const DealEdit = () => {
       }
     }
 
+    // Call the original form submit function
     if (formProps.onFinish) {
-      await formProps.onFinish(values);
+      const result = await formProps.onFinish(values);
+      
+      // After successful edit, recalculate store's top discount fields
+      if (result && values.store_id) {
+        try {
+          // Get all deals for this store to recalculate the top deal
+          const { data: allStoreDeals, error: dealsError } = await supabase
+            .from('deals')
+            .select('*')
+            .eq('store_id', values.store_id);
+          
+          if (dealsError) {
+            console.error('Failed to fetch store deals for recalculation:', dealsError);
+            return;
+          }
+          
+          if (!allStoreDeals || allStoreDeals.length === 0) {
+            // No deals left, clear all discount fields to null
+            const { error: updateError } = await supabase
+              .from('stores')
+              .update({
+                discount: null,
+                discount_unit: null,
+                discount_type: null,
+                discount_id: null
+              })
+              .eq('id', values.store_id);
+            
+            if (updateError) {
+              console.error('Failed to clear store discount fields:', updateError);
+            }
+          } else {
+            // Find the top deal among all deals
+            let topDeal = null;
+            let highestDiscount = -1;
+            let bogoDeal = null; // Store BOGO/Free Shipping deal as fallback
+            
+            for (const deal of allStoreDeals) {
+              if (deal.type === 'discount' || deal.type === 'amountOff') {
+                const dealDiscount = deal.discount || 0;
+                if (dealDiscount > highestDiscount) {
+                  highestDiscount = dealDiscount;
+                  topDeal = deal;
+                }
+              } else if (deal.type === 'bogo' || deal.type === 'freeShipping') {
+                // Store BOGO/Free Shipping deal as fallback, but don't break
+                if (!bogoDeal) {
+                  bogoDeal = deal;
+                }
+              }
+            }
+            
+            // If no discount/amountOff deals found, use BOGO/Free Shipping as fallback
+            if (!topDeal && bogoDeal) {
+              topDeal = bogoDeal;
+            }
+            
+            // Prepare store update data
+            const storeUpdateData: any = {};
+            
+            if (topDeal) {
+              if (topDeal.type === 'discount' || topDeal.type === 'amountOff') {
+                // Handle discount_unit - replace "$" with currency code from country
+                let discountUnit = topDeal.discount_unit;
+                if (discountUnit === '$' && topDeal.country_id) {
+                  const country = countriesData?.data?.find((country: any) => country.id === topDeal.country_id);
+                  if (country?.currency_code?.en) {
+                    discountUnit = country.currency_code.en;
+                  }
+                }
+                
+                storeUpdateData.discount = topDeal.discount;
+                storeUpdateData.discount_unit = discountUnit;
+              } else {
+                // For BOGO and Free Shipping deals, set default values
+                storeUpdateData.discount = 0;
+                storeUpdateData.discount_unit = '';
+              }
+              storeUpdateData.discount_type = topDeal.type;
+              storeUpdateData.discount_id = topDeal.id;
+            }
+            
+            // Update the store with the new top deal information
+            const { error: updateError } = await supabase
+              .from('stores')
+              .update(storeUpdateData)
+              .eq('id', values.store_id);
+            
+            if (updateError) {
+              console.error('Failed to update store discount fields:', updateError);
+            }
+          }
+        } catch (error) {
+          console.error('Error recalculating store discount fields:', error);
+        }
+      }
     } else {
       message.error("Form submit function not available");
     }
