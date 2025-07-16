@@ -3,7 +3,7 @@ import { Form, Input, Button, Switch, Select, InputNumber, message } from "antd"
 import { SaveOutlined } from "@ant-design/icons";
 import { useContext, useState, useEffect } from "react";
 import { ColorModeContext } from "../../contexts/color-mode";
-import { useList, useDelete } from "@refinedev/core";
+import { useList, useDelete, useOne } from "@refinedev/core";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabaseClient as supabase } from "../../utility/supabaseClient";
 
@@ -23,20 +23,13 @@ export const DealEdit = () => {
   const [currentSelectedCategoryIds, setCurrentSelectedCategoryIds] = useState<number[]>([]);
   const [categoriesLoaded, setCategoriesLoaded] = useState(false);
 
-  // Fetch all stores using useList
-  const { data: storesData, isLoading: storesLoading } = useList({
-    resource: "stores",
-    pagination: {
-      mode: "off", // Disable pagination to get all stores
-    },
-  });
+  // Fetch specific store and country data when deal data is loaded
+  const [storeData, setStoreData] = useState<any>(null);
+  const [countryData, setCountryData] = useState<any>(null);
+  const [storeLoading, setStoreLoading] = useState(false);
+  const [countryLoading, setCountryLoading] = useState(false);
 
-  // Fetch all countries using useList
-  const { data: countriesData, isLoading: countriesLoading } = useList({
-    resource: "countries",
-  });
-
-  // Fetch all categories using useList
+  // Fetch all categories using useList (still needed for category selection)
   const { data: categoriesData, isLoading: categoriesLoading } = useList({
     resource: "categories",
   });
@@ -50,6 +43,61 @@ export const DealEdit = () => {
       document.title = `Edit ${query.data.data.title} - Deal`;
     }
   }, [query?.data?.data?.title]);
+
+  // Fetch specific store and country data when deal data is loaded
+  useEffect(() => {
+    const fetchSpecificData = async () => {
+      if (query?.data?.data) {
+        const deal = query.data.data;
+        
+        // Fetch specific store data
+        if (deal.store_id) {
+          setStoreLoading(true);
+          try {
+            const { data: store, error: storeError } = await supabase
+              .from('stores')
+              .select('*')
+              .eq('id', deal.store_id)
+              .single();
+            
+            if (storeError) {
+              console.error('Error fetching store:', storeError);
+            } else {
+              setStoreData(store);
+            }
+          } catch (error) {
+            console.error('Error fetching store:', error);
+          } finally {
+            setStoreLoading(false);
+          }
+        }
+
+        // Fetch specific country data
+        if (deal.country_id) {
+          setCountryLoading(true);
+          try {
+            const { data: country, error: countryError } = await supabase
+              .from('countries')
+              .select('*')
+              .eq('id', deal.country_id)
+              .single();
+            
+            if (countryError) {
+              console.error('Error fetching country:', countryError);
+            } else {
+              setCountryData(country);
+            }
+          } catch (error) {
+            console.error('Error fetching country:', error);
+          } finally {
+            setCountryLoading(false);
+          }
+        }
+      }
+    };
+
+    fetchSpecificData();
+  }, [query?.data?.data]);
 
   // Fetch existing category relationships when deal data is loaded
   useEffect(() => {
@@ -100,17 +148,16 @@ export const DealEdit = () => {
       // Set currency display based on type and country
       if (dealData.type === 'discount') {
         setCurrencyDisplay('%');
-      } else if (dealData.type === 'amountOff' && dealData.country_id) {
-        const selectedCountry = countriesData?.data?.find((country: any) => country.id === dealData.country_id);
-        if (selectedCountry?.currency) {
-          const currencyData = selectedCountry.currency;
+      } else if (dealData.type === 'amountOff' && dealData.country_id && countryData) {
+        if (countryData?.currency) {
+          const currencyData = countryData.currency;
           setCurrencyDisplay(currencyData.en || currencyData.value || '$');
         } else {
           setCurrencyDisplay('$');
         }
       }
     }
-  }, [query?.data?.data, countriesData?.data, formProps.form]);
+  }, [query?.data?.data, countryData, formProps.form]);
 
   const handleSave = async (values: any) => {
     // Handle category relationships
@@ -283,7 +330,7 @@ export const DealEdit = () => {
       if (dealData.store_id) {
         try {
           // Get current store data
-          const currentStore = storesData?.data?.find((store: any) => store.id === dealData.store_id);
+          const currentStore = storeData;
           if (currentStore) {
             const currentTotalOffers = currentStore.total_offers || 0;
             const newTotalOffers = Math.max(0, currentTotalOffers - 1); // Ensure it doesn't go below 0
@@ -436,7 +483,7 @@ export const DealEdit = () => {
       deleteButtonProps={{
         onSuccess: handleDeleteDeal,
       }}
-      isLoading={formLoading || storesLoading || countriesLoading || categoriesLoading}
+      isLoading={formLoading || storeLoading || countryLoading || categoriesLoading}
     >
       <Form {...formProps} layout="vertical" onFinish={handleSave}>
         <Form.Item
@@ -539,7 +586,7 @@ export const DealEdit = () => {
         >
           <Select
             placeholder="Select a store"
-            loading={!storesData}
+            loading={!storeData}
             disabled={true}
             showSearch
             optionFilterProp="children"
@@ -548,20 +595,20 @@ export const DealEdit = () => {
               return String(label).toLowerCase().includes(input.toLowerCase());
             }}
           >
-            {storesData?.data?.map((store: any) => (
-              <Select.Option key={store.id} value={store.id}>
+            {storeData && (
+              <Select.Option value={storeData.id}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {store.profile_picture_url && (
+                  {storeData.profile_picture_url && (
                     <img 
-                      src={store.profile_picture_url} 
-                      alt={store.title}
+                      src={storeData.profile_picture_url} 
+                      alt={storeData.title}
                       style={{ width: '20px', height: '20px', objectFit: 'cover', borderRadius: '50%' }}
                     />
                   )}
-                  <span>{store.title}</span>
+                  <span>{storeData.title}</span>
                 </div>
               </Select.Option>
-            ))}
+            )}
           </Select>
         </Form.Item>
 
@@ -572,7 +619,7 @@ export const DealEdit = () => {
         >
           <Select
             placeholder="Select a country"
-            loading={!countriesData}
+            loading={!countryData}
             disabled={true}
             showSearch
             optionFilterProp="children"
@@ -581,18 +628,18 @@ export const DealEdit = () => {
               return String(label).toLowerCase().includes(input.toLowerCase());
             }}
           >
-            {countriesData?.data?.map((country: any) => (
-              <Select.Option key={country.id} value={country.id}>
+            {countryData && (
+              <Select.Option value={countryData.id}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <img 
-                    src={country.image_url} 
-                    alt={country.value}
+                    src={countryData.image_url} 
+                    alt={countryData.value}
                     style={{ width: '20px', height: '15px', objectFit: 'cover' }}
                   />
-                  <span>{country.value}</span>
+                  <span>{countryData.value}</span>
                 </div>
               </Select.Option>
-            ))}
+            )}
           </Select>
         </Form.Item>
 
@@ -614,8 +661,8 @@ export const DealEdit = () => {
               } else if (value === 'amountOff') {
                 formProps.form?.setFieldValue('discount_unit', '$');
                 // Update currency display based on selected country
-                if (selectedCountryId) {
-                  const selectedCountry = countriesData?.data?.find((country: any) => country.id === selectedCountryId);
+                if (selectedCountryId && countryData) {
+                  const selectedCountry = countryData;
                   if (selectedCountry?.currency) {
                     const currencyData = selectedCountry.currency;
                     setCurrencyDisplay(currencyData.en || currencyData.value || '$');
