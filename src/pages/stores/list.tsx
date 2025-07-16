@@ -319,6 +319,22 @@ export const StoreList = () => {
       dataIndex: "title",
       key: "title",
       ...getColumnSearchProps('title'),
+      render: (text: string, record: any) => (
+        <div 
+          style={{ 
+            fontWeight: "500", 
+            color: mode === "dark" ? "#ffffff" : "#000000",
+            wordWrap: "break-word",
+            whiteSpace: "normal",
+            lineHeight: "1.4",
+            cursor: "pointer",
+            fontSize: "16px"
+          }}
+          onClick={() => navigate(`/stores/show/${record.id}`)}
+        >
+          {text}
+        </div>
+      ),
     },
     {
       title: "Total Offers",
