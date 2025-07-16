@@ -34,9 +34,13 @@ import { DealList } from "./pages/deals/list";
 import { DealCreate } from "./pages/deals/create";
 import { DealEdit } from "./pages/deals/edit";
 import { DealShow } from "./pages/deals/show";
+import { CategoryList } from "./pages/categories/list";
+import { CategoryCreate } from "./pages/categories/create";
+import { CategoryEdit } from "./pages/categories/edit";
+import { CategoryShow } from "./pages/categories/show";
 
         
-import { ShoppingOutlined, GiftOutlined } from '@ant-design/icons';
+import { ShoppingOutlined, GiftOutlined, TagsOutlined } from '@ant-design/icons';
 import { useContext } from 'react';
 import { ColorModeContext } from './contexts/color-mode';
 
@@ -137,6 +141,18 @@ function App() {
                       icon: <GiftOutlined style={{color: primaryColor}}/>,
                     },
                   },
+                  {
+                    name: "categories",
+                    list: "/categories",
+                    create: "/categories/create",
+                    edit: "/categories/edit/:id",
+                    show: "/categories/show/:id",
+                    meta: {
+                      canDelete: true,
+                      label: "Categories",
+                      icon: <TagsOutlined style={{color: primaryColor}}/>,
+                    },
+                  },
                 ]}
                 options={{
                   syncWithLocation: true,
@@ -178,6 +194,10 @@ function App() {
                     <Route path="/deals/create" element={<DealCreate />} />
                     <Route path="/deals/edit/:id" element={<DealEdit />} />
                     <Route path="/deals/show/:id" element={<DealShow />} />
+                    <Route path="/categories" element={<CategoryList />} />
+                    <Route path="/categories/create" element={<CategoryCreate />} />
+                    <Route path="/categories/edit/:id" element={<CategoryEdit />} />
+                    <Route path="/categories/show/:id" element={<CategoryShow />} />
                     <Route path="*" element={<ErrorComponent />} />
                   </Route>
                   <Route
