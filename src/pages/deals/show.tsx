@@ -435,7 +435,7 @@ export const DealShow = () => {
                     deal.type === 'amountOff' ? 'orange' : 
                     deal.type === 'bogo' ? 'blue' : 
                     deal.type === 'freeShipping' ? 'green' : 'default'
-                  } style={{ fontSize: "12px", fontWeight: "500" }}>
+                  } style={{ fontSize: "12px", fontWeight: "500", marginRight: 0 }}>
                     {deal.type === 'discount' ? 'Discount' : 
                      deal.type === 'amountOff' ? 'Amount Off' : 
                      deal.type === 'bogo' ? 'BOGO' : 
