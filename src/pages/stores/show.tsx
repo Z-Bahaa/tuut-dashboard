@@ -960,8 +960,11 @@ export const StoreShow = () => {
                             height: "auto",
                             margin: "2px 0",
                             color: mode === "light" ? "#722ed1" : "#faad14",
-                            borderColor: mode === "light" ? "#722ed1" : "#faad14"
+                            borderColor: mode === "light" ? "#722ed1" : "#faad14",
+                            cursor: "pointer",
+                            transition: "all 0.2s ease"
                           }}
+                          onClick={() => navigate(`/categories/show/${item.category_id}`)}
                         >
                           {item.categories?.image_url && (
                             <Image
@@ -977,7 +980,7 @@ export const StoreShow = () => {
                               preview={false}
                             />
                           )}
-                          <span >{item.categories?.title}</span>
+                          <span>{item.categories?.title}</span>
                         </Tag>
                       ))}
                     </div>
