@@ -11,10 +11,9 @@ export const StoreEdit = () => {
   const { mode } = useContext(ColorModeContext);
   const { formProps, saveButtonProps, formLoading, query, form } = useForm();
 
-  // Fetch all countries using useList
-  const { data: countriesData } = useList({
-    resource: "countries",
-  });
+  // Fetch only the store's country using useOne
+  const [storeCountry, setStoreCountry] = useState<any>(null);
+  const [countryLoading, setCountryLoading] = useState(true);
 
   // Fetch all categories using useList
   const { data: categoriesData } = useList({
@@ -49,12 +48,34 @@ export const StoreEdit = () => {
     }
   }, [query?.data?.data?.title]);
 
-  // Fetch existing category relationships when store data is loaded
+  // Fetch store's country and existing category relationships when store data is loaded
   useEffect(() => {
-    const fetchStoreCategories = async () => {
+    const fetchStoreData = async () => {
       if (query?.data?.data?.id) {
         const storeId = query.data.data.id;
+        const countryId = query.data.data.country_id;
         
+        // Fetch store's country
+        if (countryId) {
+          try {
+            const { data: country, error: countryError } = await supabase
+              .from('countries')
+              .select('*')
+              .eq('id', countryId)
+              .single();
+
+            if (countryError) {
+              console.error('Error fetching store country:', countryError);
+            } else {
+              setStoreCountry(country);
+            }
+          } catch (error) {
+            console.error('Error fetching store country:', error);
+          }
+        }
+        setCountryLoading(false);
+        
+        // Fetch store categories
         try {
           const { data: storeCategories, error } = await supabase
             .from('store_categories')
@@ -77,7 +98,7 @@ export const StoreEdit = () => {
       }
     };
 
-    fetchStoreCategories();
+    fetchStoreData();
   }, [query?.data?.data?.id]);
 
 
@@ -410,7 +431,7 @@ export const StoreEdit = () => {
         >
           <Select
             placeholder="Select a country"
-            loading={!countriesData}
+            loading={countryLoading}
             disabled={true}
             showSearch
             optionFilterProp="children"
@@ -419,18 +440,18 @@ export const StoreEdit = () => {
               return String(label).toLowerCase().includes(input.toLowerCase());
             }}
           >
-            {countriesData?.data?.map((country: any) => (
-              <Select.Option key={country.id} value={country.id}>
+            {storeCountry && (
+              <Select.Option key={storeCountry.id} value={storeCountry.id}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <img 
-                    src={country.image_url} 
-                    alt={country.value}
+                    src={storeCountry.image_url} 
+                    alt={storeCountry.value}
                     style={{ width: '20px', height: '15px', objectFit: 'cover' }}
                   />
-                  <span>{country.value}</span>
+                  <span>{storeCountry.value}</span>
                 </div>
               </Select.Option>
-            ))}
+            )}
           </Select>
         </Form.Item>
 
