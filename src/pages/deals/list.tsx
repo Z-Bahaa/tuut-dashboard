@@ -1,9 +1,9 @@
 import { List, useTable, ImageField, useNotificationProvider } from "@refinedev/antd";
 import { useMany, useList, useDelete } from "@refinedev/core";
-import { Table, Space, Button, Input, Tag, Popconfirm, message } from "antd";
+import { Table, Space, Button, Input, Tag, Popconfirm, message, Select } from "antd";
 import { EditOutlined, EyeOutlined, PlusOutlined, SearchOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import { ColorModeContext } from "../../contexts/color-mode";
 import { supabaseClient as supabase } from "../../utility/supabaseClient";
 
@@ -13,9 +13,44 @@ export const DealList = () => {
   const [titleSearchText, setTitleSearchText] = useState("");
   const [codeSearchText, setCodeSearchText] = useState("");
   const [searchedColumn, setSearchedColumn] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [dealIdsForCategory, setDealIdsForCategory] = useState<number[]>([]);
+  const [categoryLoading, setCategoryLoading] = useState(false);
   
   const { mutate: deleteDeal } = useDelete();
   const { open } = useNotificationProvider();
+
+  // Fetch deal IDs for selected category
+  useEffect(() => {
+    const fetchDealIdsForCategory = async () => {
+      if (selectedCategoryId) {
+        setCategoryLoading(true);
+        try {
+          const { data, error } = await supabase
+            .from('deal_categories')
+            .select('deal_id')
+            .eq('category_id', selectedCategoryId);
+
+          if (error) {
+            console.error('Error fetching deal IDs for category:', error);
+            setCategoryLoading(false);
+            return;
+          }
+
+          const ids = data?.map((item: any) => item.deal_id) || [];
+          setDealIdsForCategory(ids);
+          setCategoryLoading(false);
+        } catch (error) {
+          console.error('Error fetching deal IDs for category:', error);
+          setCategoryLoading(false);
+        }
+      } else {
+        setDealIdsForCategory([]);
+      }
+    };
+
+    fetchDealIdsForCategory();
+  }, [selectedCategoryId]);
 
   // Custom delete function
   const handleDeleteDeal = async (deal: any) => {
@@ -238,6 +273,11 @@ export const DealList = () => {
           operator: "contains",
           value: codeSearchText,
         },
+        ...(selectedCategoryId && dealIdsForCategory.length > 0 ? [{
+          field: "id",
+          operator: "in" as const,
+          value: dealIdsForCategory,
+        }] : []),
       ],
     },
     onSearch: (values: any) => {
@@ -247,6 +287,9 @@ export const DealList = () => {
     },
     sorters: {
       initial: [],
+    },
+    queryOptions: {
+      enabled: !selectedCategoryId || (selectedCategoryId && !categoryLoading && dealIdsForCategory.length > 0) ? true : false,
     },
   });
 
@@ -272,6 +315,11 @@ export const DealList = () => {
     pagination: {
       mode: "off", // Disable pagination to get all countries
     },
+  });
+
+  // Fetch all categories for filter options
+  const { data: allCategoriesData } = useList({
+    resource: "categories",
   });
 
   // Create a map of country data for quick lookup
@@ -702,6 +750,51 @@ export const DealList = () => {
 
       ]}
     >
+      {/* Category Filter */}
+      <div style={{ marginBottom: "16px", display: "flex", alignItems: "center", gap: "12px" }}>
+        <span style={{ fontWeight: "500", color: mode === "dark" ? "#ffffff" : "#000000" }}>
+          Filter by Category:
+        </span>
+        <Select
+          placeholder="Select a category"
+          allowClear
+          style={{ width: 300 }}
+          value={selectedCategoryId}
+          onChange={(value) => setSelectedCategoryId(value)}
+          loading={categoryLoading}
+          options={allCategoriesData?.data?.map((category: any) => ({
+            label: (
+              <Space>
+                {category.image_url && (
+                  <img 
+                    src={category.image_url} 
+                    alt={category.title}
+                    style={{ 
+                      width: 16,
+                      height: 16,
+                      borderRadius: "4px",
+                      objectFit: "cover",
+                      marginBottom: "4px"
+                    }} 
+                  />
+                )}
+                <span>{category.title}</span>
+              </Space>
+            ),
+            value: category.id,
+          })) || []}
+        />
+        {selectedCategoryId && (
+          <Button
+            size="small"
+            onClick={() => setSelectedCategoryId(null)}
+            style={{ marginLeft: "8px" }}
+          >
+            Clear Filter
+          </Button>
+        )}
+      </div>
+      
       <style>{tableScrollStyles}</style>
       <Table
         {...tableProps}

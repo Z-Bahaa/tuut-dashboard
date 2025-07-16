@@ -1,9 +1,9 @@
 import { List, useTable, ImageField, useNotificationProvider } from "@refinedev/antd";
 import { useMany, useList, useDelete } from "@refinedev/core";
-import { Table, Space, Button, Input, Tag, Popconfirm, message } from "antd";
+import { Table, Space, Button, Input, Tag, Popconfirm, message, Select } from "antd";
 import { EditOutlined, EyeOutlined, PlusOutlined, SearchOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import { ColorModeContext } from "../../contexts/color-mode";
 import { supabaseClient as supabase } from "../../utility/supabaseClient";
 import { extractFileNameFromUrl } from "../../utility/functions";
@@ -13,9 +13,44 @@ export const StoreList = () => {
   const { mode } = useContext(ColorModeContext);
   const [searchText, setSearchText] = useState("");
   const [searchedColumn, setSearchedColumn] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [storeIdsForCategory, setStoreIdsForCategory] = useState<number[]>([]);
+  const [categoryLoading, setCategoryLoading] = useState(false);
   
   const { mutate: deleteStore } = useDelete();
   const { open } = useNotificationProvider();
+
+  // Fetch store IDs for selected category
+  useEffect(() => {
+    const fetchStoreIdsForCategory = async () => {
+      if (selectedCategoryId) {
+        setCategoryLoading(true);
+        try {
+          const { data, error } = await supabase
+            .from('store_categories')
+            .select('store_id')
+            .eq('category_id', selectedCategoryId);
+
+          if (error) {
+            console.error('Error fetching store IDs for category:', error);
+            setCategoryLoading(false);
+            return;
+          }
+
+          const ids = data?.map((item: any) => item.store_id) || [];
+          setStoreIdsForCategory(ids);
+          setCategoryLoading(false);
+        } catch (error) {
+          console.error('Error fetching store IDs for category:', error);
+          setCategoryLoading(false);
+        }
+      } else {
+        setStoreIdsForCategory([]);
+      }
+    };
+
+    fetchStoreIdsForCategory();
+  }, [selectedCategoryId]);
 
   // Custom delete function that removes associated files before deleting the store
   const handleDeleteStore = async (store: any) => {
@@ -160,11 +195,19 @@ export const StoreList = () => {
           operator: "contains",
           value: searchText,
         },
+        ...(selectedCategoryId && storeIdsForCategory.length > 0 ? [{
+          field: "id",
+          operator: "in" as const,
+          value: storeIdsForCategory,
+        }] : []),
       ],
     },
     onSearch: (values: any) => {
       setSearchText((values as any).title || "");
       return [];
+    },
+    queryOptions: {
+      enabled: !selectedCategoryId || (selectedCategoryId && !categoryLoading && storeIdsForCategory.length > 0) ? true : false,
     },
   });
 
@@ -174,6 +217,11 @@ export const StoreList = () => {
   // Fetch all countries for filter options
   const { data: allCountriesData } = useList({
     resource: "countries",
+  });
+
+  // Fetch all categories for filter options
+  const { data: allCategoriesData } = useList({
+    resource: "categories",
   });
 
   // Fetch countries data for stores
@@ -406,7 +454,52 @@ export const StoreList = () => {
         </Button>
       }
       >
-      <Table
+        {/* Category Filter */}
+        <div style={{ marginBottom: "16px", display: "flex", alignItems: "center", gap: "12px" }}>
+          <span style={{ fontWeight: "500", color: mode === "dark" ? "#ffffff" : "#000000" }}>
+            Filter by Category:
+          </span>
+          <Select
+            placeholder="Select a category"
+            allowClear
+            style={{ width: 300 }}
+            value={selectedCategoryId}
+            onChange={(value) => setSelectedCategoryId(value)}
+            loading={categoryLoading}
+            options={allCategoriesData?.data?.map((category: any) => ({
+              label: (
+                <Space>
+                  {category.image_url && (
+                    <img 
+                      src={category.image_url} 
+                      alt={category.title}
+                      style={{ 
+                        width: 16,
+                        height: 16,
+                        borderRadius: "4px",
+                        objectFit: "cover",
+                        marginBottom: "4px"
+                      }} 
+                    />
+                  )}
+                  <span>{category.title}</span>
+                </Space>
+              ),
+              value: category.id,
+            })) || []}
+          />
+          {selectedCategoryId && (
+            <Button
+              size="small"
+              onClick={() => setSelectedCategoryId(null)}
+              style={{ marginLeft: "8px" }}
+            >
+              Clear Filter
+            </Button>
+          )}
+        </div>
+        
+        <Table
         {...tableProps}
         columns={columns}
         rowKey="id"
